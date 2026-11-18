@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Spelling Bee 練習</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f8fb;--ink:#16233f;--mute:#667189;--rule:#d9e0ec;--line:#b4c6e3;--base:#5d82bf;
+  --ok:#23704f;--bad:#b3261e;--soft:#e8edf6;
+  --f:"Andika","Atkinson Hyperlegible",Verdana,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  /* four-line staff geometry, set by calibrate() */
+  --s:15px;--F:29px;--m:6px;--H:57px;--pt:0px;--pb:0px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1624;--ink:#e6ecf8;--mute:#8e9ab3;--rule:#26324a;--line:#2f4166;--base:#6b8fd0;
+  --ok:#63c196;--bad:#f08d85;--soft:#18223a}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--f)}
+main{max-width:720px;margin:0 auto;padding:28px 20px 72px}
+a{color:inherit}
+h2{font:700 22px/1.3 var(--f);margin:0 0 6px}
+p{margin:0}
+.note{color:var(--mute);font-size:14px}
+:focus-visible{outline:2px solid var(--base);outline-offset:2px}
+
+/* header + nav */
+.brand{font-weight:700;font-size:20px}
+.brand small{font-weight:400;font-size:13px;color:var(--mute);margin-left:10px}
+nav{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin:12px 0 28px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav a{padding:10px 12px;color:var(--mute);text-decoration:none;font-size:15px;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+nav a.on{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
+nav .ct{font-size:12px;margin-left:5px;color:var(--mute);font-weight:400}
+
+/* buttons */
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 22px;border-radius:8px;
+  border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);font:700 15px/1 var(--f);cursor:pointer;text-decoration:none}
+.btn:active{transform:translateY(1px)}
+.btn.sec{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.sec:hover{border-color:var(--ink)}
+.btn.sec[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.ghost{background:none;border-color:transparent;color:var(--mute);font-weight:400;padding:0 10px;text-decoration:underline;text-underline-offset:4px}
+.btn.ghost:hover{color:var(--ink)}
+.btn.sm{height:32px;padding:0 10px;font-size:13px}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:22px}
+
+/* segmented control */
+.row{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:18px 0 0}
+.lab{color:var(--mute);font-size:14px;min-width:3.5em}
+.seg{display:inline-flex;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg label{position:relative;display:flex;align-items:center;height:40px;padding:0 16px;font-size:14px;color:var(--mute);cursor:pointer}
+.seg label+label{border-left:1.5px solid var(--rule)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--ink);color:var(--bg);font-weight:700}
+.seg label:has(input:focus-visible){outline:2px solid var(--base);outline-offset:-4px}
+
+/* four-line staff: the writing line for English words */
+.staff{display:block;width:100%;max-width:26rem;height:var(--H);padding:var(--pt) 6px var(--pb);
+  font:400 var(--F)/calc(var(--H) - var(--pt) - var(--pb)) var(--f);letter-spacing:.03em;color:var(--ink);
+  border:0;border-radius:0;outline:0;margin:0;
+  background:
+    linear-gradient(var(--line),var(--line)) 0 var(--m)/100% 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) 0 calc(var(--m) + var(--s))/100% 1px no-repeat,
+    linear-gradient(var(--base),var(--base)) 0 calc(var(--m) + 2*var(--s))/100% 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) 0 calc(var(--m) + 3*var(--s))/100% 1px no-repeat}
+input.staff{background-color:transparent}
+input.staff:focus{--line:var(--base)}
+div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
+.blank{display:inline-block;width:9em;max-width:60vw;margin:0 .2em;padding:0 6px;border:0;border-bottom:1.5px solid var(--ink);
+  background:transparent;color:var(--ink);font:inherit;text-align:center;border-radius:0}
+.blank:focus{outline:0;border-bottom-color:var(--base);box-shadow:0 1.5px 0 var(--base)}
+
+/* quiz + practice items */
+.q{display:grid;grid-template-columns:2.6rem 1fr;padding:22px 0;border-top:1px solid var(--rule)}
+.q .no{color:var(--mute);padding-top:2px}
+.q .body{padding-left:14px;border-left:2px solid transparent}
+.q.ok .body{border-left-color:var(--ok)}
+.q.no .body{border-left-color:var(--bad)}
+.prompt{font-size:18px;line-height:1.7;margin-bottom:12px}
+.prompt .pos{color:var(--mute);font-size:13px;margin-left:6px}
+.prompt .fill{border-bottom:2px solid var(--ink)}
+.hint{margin-top:8px;color:var(--mute);font-size:14px}
+.verdict{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.v{font-size:13px;font-weight:700}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}
+.typed{color:var(--mute);text-decoration:line-through;font-size:16px}
+.onlywrong .q.ok{display:none}
+.dock{position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;background:var(--bg);border-top:1px solid var(--ink)}
+.sumry{padding-bottom:26px}
+.score{display:flex;align-items:baseline;gap:10px}
+.score .n{font-size:64px;font-weight:700;line-height:1}
+.score .of{color:var(--mute);font-size:18px}
+.pcard{padding:8px 0 4px}
+.pcard .prompt{font-size:22px}
+.pcard .body{padding-left:14px;border-left:2px solid transparent}
+.pcard.ok .body{border-left-color:var(--ok)}.pcard.no .body{border-left-color:var(--bad)}
+.pbar{height:3px;background:var(--rule);border-radius:2px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--ink)}
+.phead{display:flex;justify-content:space-between;align-items:center;margin:8px 0 28px}
+
+/* word list */
+.tools{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.find{height:44px;width:100%;max-width:20rem;padding:0 14px;border:1.5px solid var(--rule);border-radius:8px;background:transparent;color:var(--ink);font:inherit}
+.find:focus{outline:0;border-color:var(--base)}
+.letters{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px}
+.lt{min-width:34px;height:34px;padding:0 8px;border-radius:6px;border:1px solid var(--rule);background:none;color:var(--ink);font:400 14px var(--f);cursor:pointer}
+.lt.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
+.entry{display:grid;grid-template-columns:2.6rem 1fr auto;column-gap:8px;padding:16px 0;border-top:1px solid var(--rule)}
+.entry[hidden]{display:none}
+.star{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:0;background:none;border-radius:8px;color:var(--mute);cursor:pointer}
+.star svg{fill:none;stroke:currentColor;stroke-width:1.6}
+.star:hover{color:var(--ink)}
+.star.on{color:var(--ink)}
+.star.on svg{fill:currentColor}
+.entry .no{color:var(--mute);font-size:14px;padding-top:4px}
+.w{font-weight:700;font-size:21px;line-height:1.4}
+.pos{color:var(--mute);font-size:13px;font-weight:400;margin-left:8px}
+.d{margin:2px 0 4px}
+.s{color:var(--mute);font-size:14px}
+.s b,.d b{color:var(--ink)}
+.m-word .w:not(.rev){filter:blur(7px);cursor:pointer;user-select:none}
+.m-def .d:not(.rev),.m-def .s:not(.rev){filter:blur(6px);cursor:pointer;user-select:none}
+.meta{color:var(--mute);font-size:13px;margin-top:4px}
+.empty{padding:28px 0;color:var(--mute)}
+.empty .btn{margin-top:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.chip{padding:3px 10px;border:1px solid var(--rule);border-radius:6px}
+
+/* history */
+.h{border-top:1px solid var(--rule)}
+.h summary{display:grid;grid-template-columns:7.2em 1fr auto;gap:12px;align-items:baseline;padding:14px 0;cursor:pointer;list-style:none}
+.h summary::-webkit-details-marker{display:none}
+.h .sc{font-weight:700;font-size:18px}
+.h .wl{padding:0 0 16px 7.2em}
+.h .wl div{display:flex;gap:14px;align-items:baseline}
+@media (max-width:520px){
+  .h .wl{padding-left:0}
+  .h summary{grid-template-columns:6em 1fr auto}
+  .score .n{font-size:52px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">Spelling Bee<small>世新 250 字</small></div>
+  <nav id="nav"></nav>
+  <div id="app"></div>
+</main>
+
+<script>
+const RAW = `abacus|n|a device used for counting and calculating by sliding small balls or beads along rods or in grooves.|The grocer used an abacus instead of a modern cash register.
+abduction|n|the taking away of someone by force; a kidnapping.|Nobody believed Cynthia when she said she was a victim of alien abduction.
+abnormal|adj|different from what is normal or average; unusual, especially in a way that causes problems.|In modern times, many people consider it abnormal to live without the Internet.
+absolutely|adv|completely or totally — often used to make a statement more forceful.|The Christmas decorations that the children had made were absolutely beautiful.
+accentuate|v|to make something more noticeable; to emphasize.|The columns of the Egyptian temple accentuate its height.
+acquaintance|n|someone who is known but who is not a close friend.|Claire says that Jonathon is simply an acquaintance and not a close friend.
+acrobat|n|someone who entertains people (as at a circus) by performing difficult and often dangerous acts (such as swinging from a bar or walking on a rope high in the air).|Not afraid of heights, Paul is developing the skills of an excellent acrobat.
+acrophobia|n|abnormal fear of heights.|Because of his acrophobia, Marcus stayed at the bottom while the rest of his class went to the top of the Empire State Building.
+adolescent|n|a young person who is developing into an adult, that is someone who is between puberty and maturity.|An adolescent will face many difficulties before reaching adulthood.
+affectionate|adj|feeling or showing love; loving, fond.|Tipper is the most affectionate cat Susan has ever owned.
+agnostic|n|a person who does not have a definite belief about whether God exists or not.|Raymond and Olive have been happily married for ten years, even though she is an agnostic and he always goes to church on Sundays.
+alien|n|a creature that comes from somewhere other than the planet Earth.|The movie is about an invasion by many an alien.
+alligator|n|a large reptile that has a long body, thick skin, and sharp teeth, that lives in the tropical parts of the U.S. and China, and that is related to crocodiles.|Jason's favorite sight at the fair was a woman wrestling an alligator.
+amnesia|n|a condition in which a person is unable to remember things because of brain injury, shock, or illness; loss of memory.|Alice suffered from amnesia as the result of a head injury.
+anaconda|n|a large South American snake that squeezes its victims to death.|The anaconda has been known to search in trees for birds.
+anchor|n|a heavy device that is attached to a boat or ship by a rope or chain and that is thrown into the water to hold the boat or ship in place.|The cruise ship dropped anchor in a quiet harbor.
+annihilate|v|to destroy something or someone completely.|The human race has enough weapons to annihilate itself.
+anniversary|n|a date that is remembered or celebrated because a special or notable event occurred on that date in a previous year.|Jack and Kim celebrated their twentieth wedding anniversary in January.
+anonymous|adj|made or done by someone whose name is not known or not made public.|The money was donated by a local businessman who wishes to remain anonymous.
+anxiously|adv|acting nervously about what might happen.|Zoe's parents waited anxiously for her to come home from the party.
+apology|n|a statement saying that you are sorry about something; an expression of regret for having done or said something wrong.|The company gave an apology to its customers for its mistake.
+appetite|n|a physical desire for food.|Wendy worked up a real appetite climbing in the mountains.
+appropriate|adj|suitable or right for a particular situation or occasion.|Jeans are not appropriate for a formal party.
+argument|n|an angry disagreement; a quarrel.|The children had an argument about what game to play.
+armadillo|n|a small American animal that lives underground and whose head and body are protected by a hard shell.|Using its long, sticky tongue to remove ants from their nests, the armadillo may eat up to 40,000 ants at a time.
+Armageddon|n|a final destructive battle or conflict between good and evil at the end of the world, as described in the Bible.|In the Bible, the book of Revelation mentions Armageddon.
+arrogant|adj|behaving in an unpleasant or rude way because you think you are more important than other people.|Jack's arrogant attitude annoyed his more qualified colleagues.
+asparagus|n|a vegetable with long green stems and tiny leaves at one end that is often cooked and eaten.|Jack didn't touch the asparagus his mother served him for dinner.
+assassinate|v|to kill someone, such as a famous or important person, usually for political reasons.|The CIA discovered a plot to assassinate the president.
+atmosphere|n|the particular way a place or situation makes you feel.|The hotel offers a friendly atmosphere and personal service.
+avocado|n|a fruit with rough dark green skin, smooth light green flesh, and a large seed in the middle.|Tanya's first taste of sushi was a roll containing avocado, crab, and cucumber.
+baboon|n|a large African or Asian monkey.|The children at the zoo were entertained by the strange sounds of the baboon.
+background|n|the experiences, knowledge, and education in a person's past.|With her background in architecture, Shauna is just the right person to help restore the old library.
+badger|n|a type of animal that lives in the ground and has short thick legs and long claws on its front feet.|A badger has a black face with distinctive white markings.
+ballerina|n|a female ballet dancer.|Although the ballerina seemed nervous before her performance, her dancing was perfect.
+barrel|n|a large curved container with a flat top and bottom, made of wood or metal, and used for storing beer or wine.|David and his friends drank a whole barrel of beer at the party.
+beige|adj|light yellowish-brown in color.|Tired of the beige walls in her home, Ellen decided to repaint all the rooms with bright colors.
+belief|n|a feeling of being sure that someone or something exists or that something is true; trust in religion.|Jennifer's belief in God has been unshakable through many unforeseen bumps in the road of life.
+benevolent|adj|kind and generous.|Elmer received a gift from his benevolent aunt.
+bigamy|n|the crime of marrying one person while you are still legally married to another.|Bigamy is not accepted and is illegal in most cultures.
+bigotry|n|a strong and unfair dislike of other people, or of ideas that are different from one's own.|The headmaster was accused of bigotry because of his offensive comments about people from other countries.
+bizarre|adj|very unusual or strange.|Todd's bizarre behavior prompted his parents to call a doctor.
+bookworm|n|a person who likes to read books and who spends a lot of time reading and studying.|Vanessa was a bookworm when she was in elementary school but recently started showing more interest in sports.
+bouquet|n|a group of flowers that are picked and often tied together.|The bride carried a bouquet of white and red roses.
+breath|n|the air that goes into and out of your lungs.|Peter's breath smells like garlic.
+bridegroom|n|a man who has just married or is about to be married.|The bridegroom put his hand around his wife and smiled for the photographer.
+broadcaster|n|someone whose job is to speak on radio or television programs.|Russell is a very popular host on the radio station as he has the clear voice of an experienced broadcaster.
+brokenhearted|adj|filled with great sadness especially because someone you love has left you or died; heartbroken.|Alice was brokenhearted when she found her boyfriend in bed with another man.
+cafeteria|n|a place (such as a restaurant or a room in a school) where people get food at a counter and carry it to a table for eating.|On the last day of school, the students had a food fight in the cafeteria.
+calculator|n|a small electronic device that is used for doing calculations.|Mr. Jensen let each student use a calculator during the math test.
+camouflage|n|something (such as color or shape) that protects an animal from attack by making the animal difficult to see in the area around it.|The lizard's light brown skin acts as camouflage in the desert sand.
+candlelight|n|the light of a candle.|Cathy and Heathcliff enjoyed their romantic dinner by candlelight.
+caramel|n|a light brown candy made from butter, sugar, and milk or cream.|Irene's mother warned her not to eat a caramel before she went to the dentist.
+carbohydrate|n|any one of various substances found in certain foods (such as bread, rice, and potatoes) that provide your body with heat and energy and are made of carbon, hydrogen, and oxygen.|The nutrition facts indicated that the candy bar would provide Sheila with over half her daily allowance of carbohydrate.
+carnivore|n|an animal that eats meat.|The hyena is a carnivore that usually eats animals found dead.
+catastrophe|n|a terrible disaster.|There will be a humanitarian catastrophe if food isn't delivered to the needy people soon.
+caterpillar|n|a small creature that is like a worm with many legs and that changes to become a butterfly or moth.|The body-surface hairs on the caterpillar in Jamie's hand contain a poison that causes itching.
+celebrate|v|to do something special or enjoyable for an important event, occasion, or holiday.|About 100 people attended the party to celebrate Mom and Dad's 50th wedding anniversary.
+century|n|a period of 100 years.|Mr. Davis asked each student to name what he or she thought was the most important invention of the twentieth century.
+champagne|n|a French white wine that has many bubbles and that people often drink on special occasions.|Betty and Susan always celebrate their wedding anniversary with a bottle of champagne.
+character|n|a person who appears in a story, book, play, movie, or television show.|The film's main character is a woman in her late 30s.
+chimpanzee|n|a small, very intelligent African ape with black or brown fur.|Visitors to the zoo were amazed at the ability of Rob, the chimpanzee, to make and use tools.
+chocolate|n|a food that is made from cacao beans and that is eaten as candy or used as a flavoring ingredient in other sweet foods.|Eva prefers milk chocolate to dark chocolate.
+Christian|n|a person who believes in the teachings of Jesus Christ.|When Marie became a Christian, she decided to read the Bible daily.
+cloudy|adj|having many clouds in the sky; covered with clouds.|The weather was cold and cloudy and Sabrina thought that it might rain soon.
+coincidence|n|a situation in which events happen at the same time in a way that is not planned or expected.|By coincidence, Mary's wedding date is the same day her cousin plans to get married.
+commitment|n|a promise to do or give something.|Getting a dog is a big commitment as you need to take care of a pet for life.
+concentrate|v|to give all your attention to something and not think about anything else.|Anthony couldn't concentrate on the reading material because he was sick.
+condemn|v|to criticize something or someone strongly, usually for moral reasons.|As a teacher, I strongly condemn cheating during tests.
+costume|n|the clothes that are worn by someone, such as an actor, who is trying to look like a different person or thing.|Everyone thought that Marcus, dressed as the comic book character the Joker, had an amazing Halloween costume.
+cuckoo|n|a type of bird that lays its eggs in the nests of other birds and that has a call that sounds like its name.|The cuckoo in the cage sounded just like Grandmother's clock.
+daffodil|n|a yellow flower that blooms in the spring and that has a center that is shaped like a long tube.|The daffodil is blooming in the snow.
+danceable|adj|having a rhythm and style that people can dance to.|When a danceable song began playing at the disco, Lars asked Anita if she would join him on the dance floor.
+decade|n|a period of any ten years.|Carla claims she is going to let her hair grow for a decade without cutting it.
+delicious|adj|very pleasant to taste or smell.|Judith said the cake was the most delicious she had ever eaten.
+democracy|n|a form of government in which people choose leaders by voting.|In a democracy, every citizen should have the right to vote.
+deodorant|n|a substance that you put on your body and especially under your arms to prevent, remove, or hide unpleasant smells.|During hot summer months, Harold always uses deodorant to smell good.
+desert|n|an area of very dry land that is usually covered with sand and is very hot.|The sight of a pyramid on the desert horizon took Rick's breath away.
+despair|n|the feeling of no longer having any hope.|Despair overcame Gary as he stared at his French exam.
+detective|n|a police officer whose job is to find information about crimes that have occurred and to catch criminals.|The detective asked the bystanders if any of them had actually seen the shooter.
+difficult|adj|hard to understand; not easy.|There were so many words that were difficult, and Milo knew hardly any of them.
+disappointed|adj|feeling sad, unhappy, or displeased because something was not as good as expected or because something you hoped for or expected did not happen.|Ken's parents were disappointed that he earned only a D in math.
+disobey|v|to not do what someone or something with authority tells you to do.|A well-trained dog would not disobey a familiar command.
+diurnal|adj|active mainly during the day.|Few cats are naturally diurnal, which can be a problem for light-sleeping owners.
+documentary|n|a movie or television program that tells the facts about actual people and events.|The documentary is being produced by environmentalists who protest the destruction of forests.
+dolphin|n|a small usually gray sea mammal that has a pointed nose.|The children loved watching the dolphin perform at the aquarium.
+dumbbell|n|a short bar with weights at the ends that is used to make muscles stronger.|With great effort, Tony lifted the dumbbell above his shoulder.
+economics|n|a science concerned with the process or system by which goods and services are produced, sold, and bought.|Melissa signed up for the economics course because she felt it would help her to become a banker.
+ecstatic|adj|very happy or excited.|Maria was ecstatic when her boyfriend proposed to her.
+egocentric|adj|self-centered, selfish.|Babies are entirely egocentric, concerned only with when they will next be fed.
+elephant|n|a very large gray animal that has a long, flexible nose and two long tusks.|Zack and Debbie enjoyed watching the elephant use its trunk to spray water on its back.
+elephantine|adj|very large.|Troy was served an elephantine ice cream sundae.
+embarrassment|n|the state of feeling foolish in front of others.|Locking his car keys in his car trunk caused Andy much embarrassment.
+emerald|n|a bright green stone that is used in jewelry.|Beth's grandfather has a lovely unmounted emerald that he plans to give to her for a graduation present.
+encore|n|an extra piece of music performed in response to a request from the audience.|The audience was thrilled when Lady Gaga came back on stage to sing an encore.
+energetic|adj|having or needing a lot of energy and enthusiasm.|The energetic captain kept the police force ready for any emergency.
+engineer|n|a person who has scientific training and who designs and builds complicated products, machines, systems, or structures.|The chief engineer and his team designed a flood control plan for the city.
+episode|n|a television or radio show that is one part of a series.|The ending of each episode of the soap opera left one wanting to see the next part of the story.
+evaporate|v|to change from a liquid into a gas.|It was a hot summer, and the spilled water quickly began to evaporate.
+evildoer|n|a person who does bad or evil things.|The prosecutor portrayed the defendant as a friendly face with the heart of an evildoer.
+examine|v|to look at something closely and carefully in order to learn more about it or to find problems.|An accountant has been hired to examine the company's books.
+exhausting|adj|using all of one's mental or physical energy.|Grading all of his four hundred students' essay was an exhausting, painful job for Ricky.
+expensive|adj|costing a lot of money.|The concert tickets were expensive, but the event sold out a month before the performance date.
+extinct|adj|no longer living.|Latin is an extinct language.
+extraordinarily|adv|in a manner beyond what is usual, regular, common, or customary.|Donovan is an extraordinarily intelligent person.
+failure|n|the act or result of failing, such as a lack of success in some effort.|The whole project was doomed to failure right from the start.
+familiar|adj|frequently seen or experienced.|Sandy was chosen for the job because she was familiar with computers.
+fasten|v|to attach something or join two things or two parts of something, especially by using a pin or nail; to put something in a position or location in such a way that it will not move.|The kindergarten teacher spent two weeks teaching the children how to fasten their clothing.
+fearsome|adj|causing fear; very frightening.|Kim spent a fearsome night camping with wild animals making sounds outside her tent.
+February|n|the second month of the year.|Valentine's Day is in the month of February.
+fiercely|adv|in a very strong, violent, or powerful way.|The typhoon fiercely hit the coast of Taiwan, leaving many homes and businesses damaged.
+final|adj|happening or coming at the end.|Our last stop was Bangkok, but our final destination is Tokyo.
+flamingo|n|a large tropical bird that has pink or red wings and a very long neck and legs.|Tom and his buddies placed a giant plastic pink flamingo on the roof of the school.
+foreigner|n|a person who is from a country that is not your own.|Every neighbor in Taichung liked the foreigner who moved into the Lais' old house.
+forty|adj|being one more than 39 in number.|Mrs. Langdon spent the morning in tears the day she turned forty years old.
+fourteen|adj|being one more than 13 in number.|Many of the Scripps Howard National Spelling Bee finalists are fourteen years old.
+fried|adj|cooked in hot oil.|Milton's favorite meal is fried chicken, French fries, and a Coke.
+frightened|adj|made afraid; scared.|The frightened child was calmed by his mother's embrace.
+frustrated|adj|feeling angry, discouraged, or upset because of not being able to do something.|Many workers feel frustrated because they do not have the opportunity to use their talents in their jobs.
+gallery|n|a room or building in which people look at paintings or sculptures.|The guide showed us around the gallery, pointing out the most famous paintings in the collection.
+gangster|n|a member of a group of violent criminals.|The actor won an award for his portrayal of a Chicago gangster.
+general|adj|used to indicate that a description relates to an entire person or thing rather than a particular part.|The general feeling in the office was that Vivian was not a great boss.
+genre|n|a particular type or category of literature or art.|Most of the director's work has been in the genre of science fiction.
+geography|n|an area of study that deals with the location of countries, cities, rivers, mountains, or lakes.|Chelsea was surprised by how much she learned about geography in her history class.
+gerund|n|an English noun formed from a verb by adding -ing.|In the sentence “Swimming is Claudia's favorite activity,” the word swimming is a gerund.
+gigantic|adj|extremely large.|The American flag flying over the service station is so gigantic that it can be seen from a mile away.
+giraffe|n|a very tall African animal that has an extremely long neck and legs.|Each giraffe has a unique pattern of coat markings that distinguishes it from all other giraffes.
+goddess|n|a female god.|Venus is the Roman goddess of love.
+gorgeous|adj|very beautiful or pleasant.|The parade floats were gorgeous with their array of flowers.
+gorilla|n|a type of very large ape that has black fur and that comes from Africa.|The behavior of the gorilla has been widely studied by zoologists.
+gossip|n|conversation or reports about other people's private lives that might be unkind, disapproving, or not true.|There was a lot of gossip about the famous actor's new relationship.
+grammar|n|the set of rules that explain how words are used in a language.|Grammar is an important, but not the most important, part in learning English.
+guess|v|to form an opinion or give an answer about something when you do not know much or anything about it.|Harvey decided to guess how much sugar to put in the pie.
+guitar|n|a musical instrument that is held against the front of your body and that usually has six strings which are played with your fingers or with a pick.|Brett's parents bought him an acoustic guitar for his 15th birthday.
+hamburger|n|a flat, usually round cake of finely chopped beef that is cooked and served usually in a roll or bun.|The hamburger is supposed to have first been served at a United States expo in 1904.
+haunted|adj|lived in or visited by ghosts.|The deserted Victorian house outside town is said to be haunted.
+healthy|adj|free from disease.|A perfectly healthy tree in Tammy's backyard was twisted and torn out of the ground by the tornado.
+hippopotamus|n|a large African animal that has an extremely large head and mouth and short legs and that spends most of its time in water.|The hippopotamus spends most of the day in water because in the warm, dry air it loses water through its skin.
+homicide|n|the act of killing another person; murder.|The autopsy report stated that the woman's death was a homicide.
+humane|adj|kind or gentle to people or animals.|Sharon received an award for her humane treatment of stray animals.
+ideal|adj|exactly right for a particular purpose, situation, or person; perfect.|In an ideal world, there would be no war.
+immune|adj|protected, or not capable of being affected by a disease.|Judith falsely believed that, having received a second dose of the COVID-19 vaccine, she was totally immune to the disease.
+incapable|adj|not able to do something.|Paul seemed incapable of understanding the seriousness of the situation.
+inconvenient|adj|causing trouble or problems.|The Happy Hungry Hippo restaurant was unpopular because it was in an inconvenient location that nobody could ever find.
+ingredient|n|one of the things that are used to make a food or product.|Grandma refuses to reveal the secret ingredient that makes her chocolate cake so delicious.
+interviewee|n|a person who is questioned or talked with in order to get information or learn about them.|The job recruiter asked the interviewee some very personal questions.
+invisible|adj|impossible to see; not noticed.|Isaiah felt invisible sitting in the back of the classroom.
+January|n|the first month of the year.|Roland's birthday is in January.
+jealousy|n|a feeling of unhappiness and anger because someone has something or someone that you want.|Tammy was consumed by jealousy when she heard that Andrew had been given a promotion.
+journalism|n|the activity or job of collecting, writing, and editing news stories for newspapers, magazines, television, or radio.|Students of journalism at Northwestern University often list the class taught by Oprah Winfrey as one of their favorites.
+joyful|adj|feeling, causing, or showing great happiness.|Joyful people are said to outlive their bad-tempered friends and family.
+jumbo|adj|very large.|The jumbo diamonds flashed at the awards ceremony.
+karma|n|the force created by a person's actions that is believed in Hinduism and Buddhism to determine what that person's next life will be like, or the force created by a person's actions that some people believe causes good or bad things to happen to that person.|Having built up much bad karma by cheating on all of his girlfriends, the famous surfboarder Brad was eventually torn to pieces by a great white shark.
+kind|n|a group of people or things that belong together or have some shared quality.|The school is the first of its kind in the city.
+knit|v|to make a piece of clothing from yarn or thread by using long needles or a special machine.|Scott asked his aunt to knit him a special wool sweater with his name on it.
+knowledge|n|information, understanding, or skill that you get from experience or education.|Jack's knowledge of carpentry immediately earned him a job when he arrived in Miami.
+lantern|n|a light that usually has a glass covering and that can be carried by a handle.|The red light in the distance came from a lantern that hung from the last car of the train.
+lemur|n|an animal that is related to monkeys and that lives in trees mostly in Madagascar.|The lemur is lower on the evolutionary scale and less intelligent than the monkey.
+lettuce|n|a plant that has large leaves that are eaten especially in salads.|Maria likes a little lettuce and tomato on her sandwiches.
+magician|n|a performer who does tricks that seem to be impossible.|Everyone in the audience agreed that the mysterious magician Mad Marco Mackey managed magnificent card tricks.
+mania|n|extreme enthusiasm for something that is usually shared by many people.|Taiwan is known for its basketball mania.
+marriage|n|the relationship that exists between a husband and a wife.|Carolyn's first marriage ended in divorce.
+mermaid|n|an imaginary sea creature that has a woman's head and body and a fish's tail instead of legs.|As they sailed closer to what they thought was the end of the world, the sailors kept expecting to see a mermaid.
+midday|n|the middle of the day, that is, noontime.|The Kao family wanted to arrive at their hotel in Kenting in the morning, but because of the bad Lunar New Year traffic, they only arrived after midday.
+misspelling|n|the spelling of a word incorrectly.|The judge of the competition had to laugh and tell Blinky that “E – B – B – L” was the worst misspelling of the word apple ever.
+nausea|n|the feeling you have in your stomach when you think you are going to vomit.|Jacob always experiences nausea when flying.
+nauseous|adj|feeling like you are about to vomit.|The smell from the toilets made Becky nauseous.
+nightmare|n|a dream that frightens a sleeping person.|Carla's nightmare was caused by the ghost stories told by her brother.
+nocturnal|adj|active mainly at night.|Owls and bats are nocturnal animals.
+novelist|n|a person who writes long stories usually about imaginary characters and events.|As a novelist, Margaret specializes in science-fiction stories.
+obvious|adj|easy to see, notice, or understand.|It was obvious that Brent was not a good boyfriend and Gillian decided to break up with him.
+optimistic|adj|having or showing hope for the future, or expecting good things to happen.|Jackie was optimistic about winning the spelling bee.
+ordinary|adj|occurring in the usual course of events; common.|The painter had a skill for taking ordinary objects and turning them into works of art.
+orphan|n|a child whose parents are dead.|After his parents tragically died in a car accident, Oliver was left an orphan.
+otter|n|an animal that has dark brown fur and webbed feet with claws and that eats fish.|A river otter feeds on fish, crabs, and frogs.
+pajamas|n|clothing that people wear in bed or while relaxing at home.|Danielle received some beautiful pajamas for Christmas.
+palindrome|n|a word, phrase, or number that reads the same backward or forward.|In 2002, Hannah told her dad, Bob, and her mom, Ada, that radar was a palindrome.
+panic|n|a feeling of extreme fear that makes someone unable to act or think normally.|John was in a panic when he realized how late he was for class.
+pessimistic|adj|having or showing a lack of hope for the future; expecting bad things to happen.|The doctors are pessimistic about Jack's chances of recovery.
+philosophy|n|a set of ideas about how to do something or how to live.|Hanna's philosophy of life is to take every opportunity that presents itself.
+pigeon|n|a gray bird that is common in cities and that has a fat body and short legs.|Patricia's favorite animal is the pigeon.
+pizzeria|n|a restaurant where mainly pizzas are served.|Hank worked in a pizzeria on weekends.
+platypus|n|a small animal from Australia that has a bill like the bill of a duck, webbed feet, and a wide flat tail.|Cindy enjoyed watching the duck-billed platypus at the zoo.
+poinsettia|n|a plant with large red, pink, or white leaves that look like petals.|The red poinsettia is very popular at Christmas.
+poisonous|adj|causing sickness or death by entering or touching the body.|Adam had to go to the hospital after eating the poisonous mushrooms.
+proud|adj|very happy and pleased because of something you have done, something you own, or someone you know or are related to.|Mike was proud to be a member of the police force.
+puzzling|adj|causing confusion; difficult to solve or understand.|Stefanie's strange questions during class were very puzzling to her teacher.
+pyramid|n|a very large structure built especially in ancient Egypt that has a square base and four triangular sides which form a point at the top.|Ricardo was amazed to see his first pyramid in Egypt.
+quadruped|n|an animal that has four feet.|The horse is a quadruped.
+quest|n|a journey made in search of something.|The treasure hunters were on a quest to find the hidden gold.
+raspberry|n|a soft, red berry that is sweet and juicy.|The raspberry juice was incredibly refreshing.
+realize|v|to understand or become aware of something.|Polly began to realize that she was in a scary and unusual situation.
+recipe|n|a set of instructions for making food.|The banana cake was a recipe from Cheryl's grandmother.
+recyclable|adj|able to be made new from something that has been used before.|Glass products are completely recyclable.
+regicide|n|the crime of killing a king or queen.|Eventually, the suffering people had to commit regicide to rid their land of the evil king.
+repetition|n|the act of saying or doing something again.|Jason quit his job at the factory because he was bored with all the repetition in his work.
+respell|v|to name the letters of words again, or in another way.|Marilyn gave her students a chance to respell all the misspelled words in their essays.
+restaurant|n|a place where you can buy and eat a meal.|Health inspectors visited Nellie's restaurant three times before they would allow it to reopen.
+rotten|adj|decayed, and no longer able to be used or eaten.|Eric's mother didn't love him and only gave him rotten fruit to take to school.
+salmon|n|a large fish that is born in streams but that lives most of its life in the ocean and that is commonly used for food; a pink-colored fish.|Donovan hates seafood and doesn't eat salmon.
+scan|v|to look through or over quickly.|The students asked the teacher if they could scan their notes for five minutes before the test.
+screenplay|n|the written form of a movie that also includes instructions on how it is to be acted and filmed; a script for a movie.|The fascinating movie Green Book won many awards for its screenplay.
+sculptor|n|someone who makes a piece of art by carving or molding clay, stone, or metal.|Picasso was not only an amazing painter, but also a gifted sculptor.
+sequel|n|a book or movie that continues a story begun in another book or movie.|It was just another boring sequel in the Fast and the Furious movie series.
+sheriff|n|an elected official who is in charge of enforcing the law in a county or town of the U.S.|The people hoped the new sheriff would be able to bring peace back to their town.
+sightseer|n|a person who visits the famous or interesting places of an area.|The sightseer asked Melissa how he could get to Longshan Temple.
+skeleton|n|the frame of bones supporting a human or animal body.|The human skeleton consists of 206 bones.
+sorcerer|n|a magician; a wizard.|The angry sorcerer changed the disobedient boy into a frog.
+spaghetti|n|pasta in the shape of long, thin strings.|That Italian restaurant serves the most amazing spaghetti with meat sauce.
+sphinx|n|a monster in Greek mythology with the body of a lion, the head of a person, and wings.|If you cannot answer the riddle of the sphinx, she will eat you.
+squirrel|n|a small animal with a long tail and soft fur that lives in trees.|The Watson family stopped walking in the park so that they could watch the cute squirrel in the tree.
+statistics|n pl|a number that represents a piece of information (such as how often something is done or how common something is).|The statistics show that teenagers are involved in a high percentage of traffic accidents.
+stethoscope|n|an instrument that is used for listening to someone's heart or lungs.|Heard through a stethoscope, the rumbling of the stomach can sound like a storm at sea.
+succinct|adj|using few words to state or express an idea.|Johnson prefers a succinct speech to a long and boring one.
+suspicion|n|a feeling that someone is possibly guilty of a crime or of doing something wrong.|The teacher, Estelle, had the suspicion that many of her students were not listening during her online class.
+syringe|n|a device made of a hollow tube and a needle that is used to force fluids into or take fluids out of the body.|Cameron screamed when the nurse brought out a syringe for the blood test.
+tarantula|n|a large hairy spider that can bite but is not significantly poisonous to humans.|Alexa shrieked when the huge tarantula ran over her face.
+temperature|n|a measurement that indicates how hot or cold something is.|In Washington, D.C., the average temperature ranges from about 30 degrees in winter to about 86 degrees in summer.
+temple|n|a building dedicated to the worship of a god or gods.|The Johnsons admired the beautiful Longshan Temple in Taipei City.
+terrorist|n|someone who uses violent action, or threats of violent action, for political purposes.|An unknown terrorist group has claimed responsibility for this morning's bomb attack.
+tilde|n|the mark “~” used in some languages (such as Spanish and Portuguese) to show that the letter “n” is pronounced /nj/ or that a vowel is pronounced in a different way.|Marcia could not find the tilde on the keyboard when she wanted to type the word “jalapeño”.
+tombstone|n|a stone that marks the place where a dead person is buried and that usually has the person's name and birth and death dates on it; a gravestone.|Marie's name is misspelled on the tombstone.
+tough|adj|very difficult to do, deal with, or comprehend.|The questions on the final exam were so tough that only the well-prepared students got a passing grade.
+trilogy|n|a series of three novels or movies that are closely related and involve the same characters or themes.|The third novel in the trilogy “The Lord of the Rings” completed the whole story.
+ubiquitous|adj|seeming to be seen everywhere.|The 7-11 store is ubiquitous in Taiwan.
+unchangeable|adj|not capable of being made different.|Mr. Chang denied that age makes habits unchangeable.
+unicorn|n|an imaginary animal that looks like a horse and has a straight horn growing from the middle of its forehead.|Sarah has a picture of a beautiful white unicorn on her wall.
+unique|adj|used to say that something or someone is unlike anything or anyone else.|The shape of each and every snowflake is unique.
+universe|n|all of space and everything in it, including stars, planets, and galaxies.|We humans have advanced greatly in our knowledge of the universe.
+unnatural|adj|strange; not normal.|Throughout the year, Ryan has dyed his hair all sorts of unnatural colors.
+vaccinate|v|to give a person or an animal a vaccine to prevent infection by a disease.|In order to prevent the spread of COVID, it was important to fully vaccinate as many people as possible in Taiwan.
+valuable|adj|worth a lot of money.|The gold watch is extremely valuable.
+vegetarian|adj|describing a diet, meal, or menu that does not include meat.|After spending two years in Japan, Annabelle now follows a vegetarian diet.
+venue|n|the place where an event takes place.|Rosie chose a fancy restaurant as the venue for her birthday party.
+versus|prep|against.|Katerina sometimes feels like it's her versus the rest of the world.
+veterinarian|n|a person who is trained to give medical care and treatment to animals; an animal doctor.|The veterinarian removed a large splinter from Misty's paw.
+vinegar|n|a sour liquid that is used to flavor or preserve foods or to clean things.|Pete used vinegar in the salad dressing.
+volcano|n|a mountain with a hole in the top or side that sometimes sends out rocks, ash, or lava, in a sudden explosion.|The volcano last erupted 25 years ago.
+warrior|n|a person who fights in battles and is known for having courage and skill.|The brave warrior sacrificed his life to save the king.
+wasteful|adj|using more of something than is needed, or causing something valuable to be wasted.|The new boss told everybody that they must avoid the wasteful use of paper.
+weird|adj|unusual or very strange.|Candy does not care for science-fiction movies because she feels the stories are usually too weird.
+wizard|n|a person who is skilled in magic or who has magical powers; a magician.|The wizard vowed to use his powers to help the townspeople.
+workaholic|n|a person who chooses to work a lot; a person who is always working or thinking about work.|Beth is a workaholic who hasn't taken a vacation in over six years.
+xenophobia|n|fear, hatred, or dislike of strangers or foreigners.|Having learned a strong sense of xenophobia from his parents, Max would never speak to students from other countries.
+xenophobic|adj|showing an extreme dislike or fear of people from foreign countries.|Roger's xenophobic personality made him unfit for being a tour guide.
+yearling|n|an animal that is between one and two years old.|Although its small size made Ken think the rabbit was a yearling, it was actually closer to three years old.
+yeast|n|a type of fungus that is used in making alcoholic drinks such as beer and wine, and in baking to help make dough rise.|Martin's mother explained to him that you must mix flour, yeast, and water to make bread.
+zigzaggedness|n|used to describe something that has short sharp turns or angles.|Driving up the mountain, we became scared of the dangerous zigzaggedness of the road.
+zoology|n|the branch of science that involves the study of animals and animal behavior.|It is surprising that Gretchen, an animal lover, dreads her studies in zoology.
+zucchini|n|a dark green vegetable that is long and smooth and that has soft skin which can be eaten.|Tim picked a large zucchini from his garden so that he could slice it and grill it for dinner.`;
+
+const WORDS = RAW.trim().split('\n').map((l, i) => { const [w, p, d, s] = l.split('|'); return { w, p, d, s, n: i + 1 }; });
+const WMAP = Object.fromEntries(WORDS.map(x => [x.w, x]));
+const ALT = { realize: ['realise'] };
+const N = 25;
+const MODES = { mix: '混合', def: '看定義', cloze: '例句填空' };
+const ATTR = 'autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"';
+
+/* ---------- random: uniform, unbiased ---------- */
+function rnd(n) {
+  const lim = Math.floor(0x100000000 / n) * n, a = new Uint32Array(1);
+  do { crypto.getRandomValues(a); } while (a[0] >= lim);
+  return a[0] % n;
+}
+function sample(arr, k) {
+  const a = arr.slice();
+  for (let i = 0; i < k; i++) { const j = i + rnd(a.length - i); [a[i], a[j]] = [a[j], a[i]]; }
+  return a.slice(0, k);
+}
+
+/* ---------- storage: browser-local, falls back to memory ---------- */
+const store = (() => {
+  let ok = true; const mem = {};
+  try { localStorage.setItem('_t', '1'); localStorage.removeItem('_t'); } catch (e) { ok = false; }
+  return {
+    ok,
+    get(k, d) { try { if (ok) { const v = localStorage.getItem(k); if (v != null) return JSON.parse(v); } } catch (e) {} return k in mem ? mem[k] : d; },
+    set(k, v) { mem[k] = v; try { if (ok) localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+})();
+const prefs = Object.assign({ mode: 'mix', src: 'all', lm: 'none' }, store.get('prefs', {}));
+const savePrefs = () => store.set('prefs', prefs);
+const getWeak = () => store.get('weak', {});
+const getHist = () => store.get('hist', []);
+function recordResult(word, ok, first) {
+  const wk = getWeak(), e = wk[word];
+  if (!ok) wk[word] = { miss: (e ? e.miss : 0) + 1, last: Date.now(), streak: 0 };
+  else if (e && first) { e.streak = (e.streak || 0) + 1; if (e.streak >= 2) delete wk[word]; }
+  store.set('weak', wk); renderNav();
+}
+function logHist(rec) { const h = getHist(); h.unshift(rec); store.set('hist', h.slice(0, 200)); }
+const storeNote = () => store.ok ? '' : '<p class="note" style="margin-top:20px">此環境無法長期儲存，錯字清單與記錄只在這次開啟期間保留。</p>';
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const app = $('#app');
+const pad = n => String(n).padStart(2, '0');
+const fmt = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const seg = (name, opts, val) => `<div class="seg" role="radiogroup">${Object.entries(opts).map(([k, l]) =>
+  `<label><input type="radio" name="${name}" value="${k}" ${k === val ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>`;
+const picked = n => $(`input[name="${n}"]:checked`).value;
+const maskDef = w => w.d.replace(new RegExp('\\b' + w.w + '\\w*', 'gi'), '____');
+function splitSentence(w) {
+  const m = w.s.match(new RegExp('\\b' + w.w + '\\b', 'i'));
+  return [w.s.slice(0, m.index), w.s.slice(m.index + m[0].length)];
+}
+function make(word, mode) {
+  const avail = ['def'];
+  if (new RegExp('\\b' + word.w + '\\b', 'i').test(word.s)) avail.push('cloze');
+  const type = mode === 'mix' ? avail[rnd(avail.length)] : (avail.includes(mode) ? mode : 'def');
+  return { word, type };
+}
+function isRight(q, val) {
+  const full = val.trim();
+  const accept = [q.word.w, ...(ALT[q.word.w] || [])];
+  const strict = /[A-Z]/.test(q.word.w);
+  return accept.some(a => strict ? a === full : a.toLowerCase() === full.toLowerCase());
+}
+
+/* question body (before answering) and its marked version (after) */
+function qBody(q, i) {
+  const w = q.word, pos = `<span class="pos">${esc(w.p)}</span>`;
+  if (q.type === 'def') return `<p class="prompt">${esc(maskDef(w))}${pos}</p><input class="staff fld" data-i="${i}" aria-label="拼出單字" ${ATTR}>`;
+  const [b, a] = splitSentence(w);
+  return `<p class="prompt">${esc(b)}<input class="blank fld" data-i="${i}" aria-label="填入單字" ${ATTR}>${esc(a)}${pos}</p>
+    <button class="btn ghost sm" data-hint="${i}" type="button">看定義</button><p class="hint" id="h${i}" hidden>${esc(maskDef(w))}</p>`;
+}
+function qDone(q, val, ok) {
+  const w = q.word;
+  let prompt;
+  if (q.type === 'def') prompt = `<p class="prompt">${esc(maskDef(w))}<span class="pos">${esc(w.p)}</span></p>`;
+  else { const [b, a] = splitSentence(w); prompt = `<p class="prompt">${esc(b)}<span class="fill">${esc(w.w)}</span>${esc(a)}</p>`; }
+  const verdict = ok
+    ? `<span class="v ok">正確</span>${q.type === 'def' ? `<div class="staff">${esc(w.w)}</div>` : ''}`
+    : `<span class="v bad">錯誤</span><div class="staff">${esc(w.w)}</div><span class="typed">${val ? esc(val) : '未作答'}</span>`;
+  return `${prompt}<div class="verdict">${verdict}</div>`;
+}
+function bindFields(root, onChange) {
+  const f = $$('.fld', root);
+  f.forEach((el, k) => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); (f[k + 1] || $('#submit') || $('#act'))?.focus(); } });
+    if (onChange) el.addEventListener('input', onChange);
+  });
+  $$('[data-hint]', root).forEach(b => b.onclick = () => { const h = $('#h' + b.dataset.hint); h.hidden = !h.hidden; });
+  return f;
+}
+
+/* ---------- nav + routing ---------- */
+const TABS = [['list', '單字表'], ['quiz', '測驗'], ['practice', '練習'], ['weak', '錯字清單'], ['history', '記錄']];
+let cur = 'quiz';
+function renderNav() {
+  const wn = Object.keys(getWeak()).length;
+  $('#nav').innerHTML = TABS.map(([k, l]) =>
+    `<a href="#${k}" class="${k === cur ? 'on' : ''}">${l}${k === 'weak' && wn ? `<span class="ct">${wn}</span>` : ''}</a>`).join('');
+}
+const VIEWS = { list: viewList, quiz: viewQuiz, practice: viewPractice, weak: viewWeak, history: viewHistory };
+function route() {
+  const h = (location.hash || '#quiz').slice(1);
+  cur = VIEWS[h] ? h : 'quiz';
+  renderNav(); window.scrollTo(0, 0); VIEWS[cur]();
+}
+window.addEventListener('hashchange', route);
+
+/* ---------- word list ---------- */
+function viewList() {
+  const letters = [...new Set(WORDS.map(w => w.w[0].toLowerCase()))];
+  const wk = getWeak();
+  app.innerHTML = `
+    <div class="tools"><input class="find" id="find" type="search" placeholder="搜尋單字或定義" ${ATTR}>
+      <button class="btn sec" id="onlystar" aria-pressed="false">只看已標記<span id="sc" style="margin-left:6px;font-weight:400"></span></button></div>
+    <div class="letters" id="letters"><button class="lt on" data-l="">全部</button>${letters.map(l => `<button class="lt" data-l="${l}">${l.toUpperCase()}</button>`).join('')}</div>
+    <div class="row" style="margin:12px 0 10px"><span class="lab">自測</span>${seg('lm', { none: '全部顯示', word: '遮住單字', def: '遮住定義' }, prefs.lm)}
+      <span class="note" id="shown"></span></div>
+    <p class="empty" id="none" hidden>沒有符合的字。在單字旁點星星可以標記。</p>
+    <div id="entries" class="${prefs.lm === 'word' ? 'm-word' : prefs.lm === 'def' ? 'm-def' : ''}">
+    ${WORDS.map(w => {
+      const re = new RegExp('\\b(' + w.w + '\\w*)', 'gi');
+      return `<div class="entry" data-w="${esc(w.w)}" data-l="${w.w[0].toLowerCase()}" data-t="${esc((w.w + ' ' + w.d).toLowerCase())}">
+        <div class="no">${w.n}</div>
+        <div><div><span class="w">${esc(w.w)}</span><span class="pos">${esc(w.p)}</span></div>
+          <div class="d">${esc(w.d)}</div><div class="s">${esc(w.s).replace(re, '<b>$1</b>')}</div></div>
+        <button class="star${wk[w.w] ? ' on' : ''}" data-flag="${esc(w.w)}" aria-pressed="${!!wk[w.w]}" aria-label="標記為不會" title="標記為不會">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3.4l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.2l-5.4 2.9 1.1-6.1L3.2 9.8l6.1-.8z" stroke-linejoin="round"/></svg></button></div>`;
+    }).join('')}</div>`;
+  let L = '';
+  const apply = () => {
+    const t = $('#find').value.trim().toLowerCase(), S = $('#onlystar').getAttribute('aria-pressed') === 'true'; let n = 0;
+    $$('.entry').forEach(e => {
+      const show = (!L || e.dataset.l === L) && (!t || e.dataset.t.includes(t)) && (!S || e.querySelector('.star.on'));
+      e.hidden = !show; if (show) n++;
+    });
+    $('#shown').textContent = n === WORDS.length ? '' : `${n} 字`;
+    $('#none').hidden = n > 0;
+  };
+  const starCount = () => { const c = Object.keys(getWeak()).length; $('#sc').textContent = c ? c : ''; };
+  starCount();
+  $('#find').oninput = apply;
+  $('#onlystar').onclick = e => {
+    const b = e.currentTarget; b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); apply();
+  };
+  $('#letters').onclick = e => { const b = e.target.closest('.lt'); if (!b) return; L = b.dataset.l; $$('.lt').forEach(x => x.classList.toggle('on', x === b)); apply(); };
+  $$('input[name="lm"]').forEach(r => r.onchange = () => {
+    prefs.lm = picked('lm'); savePrefs();
+    $('#entries').className = prefs.lm === 'word' ? 'm-word' : prefs.lm === 'def' ? 'm-def' : '';
+    $$('.rev').forEach(x => x.classList.remove('rev'));
+  });
+  $('#entries').onclick = e => {
+    const fl = e.target.closest('[data-flag]');
+    if (fl) {
+      const w = fl.dataset.flag, wk = getWeak();
+      if (wk[w]) delete wk[w]; else wk[w] = { miss: 0, last: Date.now(), streak: 0, manual: true };
+      store.set('weak', wk); fl.classList.toggle('on', !!wk[w]); fl.setAttribute('aria-pressed', !!wk[w]); renderNav(); starCount(); return;
+    }
+    const t = e.target.closest('.w,.d,.s'); if (t) t.classList.add('rev');
+  };
+}
+
+/* ---------- quiz ---------- */
+let qs = [], retry = false;
+function viewQuiz() {
+  const last = getHist().find(h => h.kind === 'quiz');
+  app.innerHTML = `
+    <h2>測驗</h2>
+    <p class="note">從 250 字中不重複隨機抽 25 題，每題 4 分。</p>
+    <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
+    <div class="actions"><button class="btn" id="go">開始測驗</button></div>
+    ${last ? `<p class="note" style="margin-top:28px">上次 ${fmt(last.t)}，${last.right * 4} 分（${last.right}/${last.total}）。<a href="#history">全部記錄</a></p>` : ''}
+    ${storeNote()}`;
+  $('#go').onclick = () => { prefs.mode = picked('mode'); savePrefs(); startQuiz(); };
+}
+function startQuiz(list) {
+  retry = !!list;
+  qs = list || sample(WORDS, N).map(w => make(w, prefs.mode));
+  app.innerHTML = `<div id="paper">${qs.map((q, i) =>
+    `<div class="q" id="q${i}"><div class="no">${i + 1}</div><div class="body">${qBody(q, i)}</div></div>`).join('')}</div>
+    <div class="dock"><span class="note" id="cnt"></span><button class="btn" id="submit">交卷</button></div>`;
+  const count = () => { $('#cnt').textContent = `已填 ${f.filter(x => x.value.trim()).length} / ${qs.length}`; };
+  const f = bindFields(app, count);
+  count(); f[0] && f[0].focus();
+  $('#submit').onclick = gradeQuiz;
+}
+function gradeQuiz() {
+  let right = 0; const wrong = [];
+  qs.forEach((q, i) => {
+    const val = $(`input[data-i="${i}"]`).value.trim(), ok = isRight(q, val);
+    q.ok = ok; if (ok) right++; else wrong.push({ w: q.word.w, a: val });
+    recordResult(q.word.w, ok, true);
+    const row = $('#q' + i); row.classList.add(ok ? 'ok' : 'no');
+    row.querySelector('.body').innerHTML = qDone(q, val, ok);
+  });
+  logHist({ t: Date.now(), kind: 'quiz', mode: prefs.mode, retry, right, total: qs.length, wrong });
+  $('.dock').remove();
+  app.insertAdjacentHTML('afterbegin', `<section class="sumry">
+    <div class="score"><span class="n">${right * 4}</span><span class="of">/ ${qs.length * 4} 分</span></div>
+    <p class="note">${right} / ${qs.length} 題正確${retry ? '（重做）' : ''}</p>
+    <div class="actions">${wrong.length ? '<button class="btn" id="redo">只重做錯的</button>' : ''}
+      <button class="btn sec" id="again">重新抽 25 題</button>
+      ${wrong.length ? '<button class="btn ghost" id="onlywrong">只看錯的</button>' : ''}
+      <a class="btn ghost" href="#weak">錯字清單</a></div></section>`);
+  window.scrollTo(0, 0);
+  $('#again').onclick = () => startQuiz();
+  if (wrong.length) {
+    $('#redo').onclick = () => startQuiz(qs.filter(q => !q.ok).map(q => make(q.word, prefs.mode)));
+    $('#onlywrong').onclick = e => { const p = $('#paper'); p.classList.toggle('onlywrong'); e.target.textContent = p.classList.contains('onlywrong') ? '顯示全部' : '只看錯的'; };
+  }
+}
+
+/* ---------- practice: one at a time, misses return a few cards later ---------- */
+let P = null;
+function viewPractice() {
+  const wn = Object.keys(getWeak()).length;
+  app.innerHTML = `
+    <h2>逐題練習</h2>
+    <p class="note">一次一題，答完馬上對答案。答錯的字隔幾題會再出現，拼對才算過。</p>
+    <div class="row"><span class="lab">範圍</span>${seg('src', { all: '全部 250 字', weak: `只練錯字（${wn}）` }, prefs.src)}</div>
+    <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
+    <div class="actions"><button class="btn" id="go">開始練習</button></div>
+    <p class="note" style="margin-top:28px">在測驗或練習中拼錯的字會進錯字清單。之後連續兩次一次就拼對，會自動移出。</p>${storeNote()}`;
+  $('#go').onclick = () => { prefs.src = picked('src'); prefs.mode = picked('mode'); savePrefs(); startPractice(); };
+}
+function startPractice() {
+  const wk = getWeak();
+  const pool = prefs.src === 'weak' ? WORDS.filter(w => wk[w.w]) : WORDS;
+  if (!pool.length) {
+    app.innerHTML = `<div class="empty">錯字清單目前是空的。先做一次測驗或練習，拼錯的字會記在這裡。<br><a class="btn" href="#quiz">去做測驗</a></div>`;
+    return;
+  }
+  P = { queue: sample(pool, pool.length).map(w => make(w, prefs.mode)), total: pool.length, first: 0, failed: new Set() };
+  card();
+}
+const leftWords = () => new Set(P.queue.map(x => x.word.w)).size;
+function card() {
+  if (!P.queue.length) return endPractice();
+  const q = P.queue[0], done = P.total - leftWords();
+  app.innerHTML = `<div class="pbar"><i style="width:${done / P.total * 100}%"></i></div>
+    <div class="phead"><span class="note">${done} / ${P.total}</span><button class="btn ghost sm" id="stop">結束</button></div>
+    <div class="pcard" id="q0"><div class="body">${qBody(q, 0)}</div></div>
+    <div class="actions"><button class="btn" id="act">檢查</button><span class="note">按 Enter</span></div>`;
+  const f = bindFields(app); f[0].focus();
+  f[0].addEventListener('keydown', e => { if (e.key === 'Enter' && !f[0].disabled) check(); });
+  $('#act').onclick = check; $('#stop').onclick = endPractice;
+}
+function check() {
+  const el = $('input[data-i="0"]'); if (!el) return;
+  const q = P.queue.shift(), val = el.value.trim(), ok = isRight(q, val), w = q.word.w;
+  const firstTry = !P.failed.has(w);
+  if (ok) { if (firstTry) P.first++; recordResult(w, true, firstTry); }
+  else { P.failed.add(w); recordResult(w, false, false); P.queue.splice(Math.min(P.queue.length, 6), 0, make(q.word, prefs.mode)); }
+  const box = $('#q0'); box.classList.add(ok ? 'ok' : 'no');
+  box.querySelector('.body').innerHTML = qDone(q, val, ok);
+  const act = $('#act'); act.textContent = '下一題'; act.onclick = card; act.focus();
+}
+function endPractice() {
+  const answered = P.total - leftWords(), miss = [...P.failed];
+  if (answered > 0) logHist({ t: Date.now(), kind: 'practice', mode: prefs.mode, src: prefs.src, right: P.first, total: answered, wrong: miss.map(w => ({ w })) });
+  app.innerHTML = `<section class="sumry"><div class="score"><span class="n">${P.first}</span><span class="of">/ ${answered} 一次就拼對</span></div>
+    ${miss.length ? `<p class="note" style="margin-top:10px">這輪拼錯過的字</p><div class="chips">${miss.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div>` : '<p class="note" style="margin-top:10px">這輪沒有拼錯。</p>'}
+    <div class="actions"><button class="btn" id="again">再練一輪</button><a class="btn sec" href="#weak">錯字清單</a></div></section>`;
+  $('#again').onclick = startPractice;
+}
+
+/* ---------- weak words ---------- */
+let wmask = false;
+function viewWeak() {
+  const items = Object.entries(getWeak()).map(([w, e]) => ({ ...e, word: WMAP[w] })).filter(x => x.word)
+    .sort((a, b) => b.miss - a.miss || b.last - a.last);
+  if (!items.length) {
+    app.innerHTML = `<h2>錯字清單</h2><div class="empty">還沒有錯字。測驗或練習中拼錯的字會出現在這裡，也可以在單字表手動標記。<br>
+      <a class="btn" href="#practice">開始練習</a></div>${storeNote()}`;
+    return;
+  }
+  app.innerHTML = `<h2>錯字清單</h2><p class="note">共 ${items.length} 字，錯最多次的在最上面。</p>
+    <div class="actions" style="margin-top:16px"><button class="btn" id="prac">練習這些字</button>
+      <button class="btn sec" id="mask">${wmask ? '顯示單字' : '遮住單字'}</button>
+      <button class="btn ghost" id="clr">清除全部</button></div>
+    <div id="wl" class="${wmask ? 'm-word' : ''}" style="margin-top:22px">
+    ${items.map(x => `<div class="entry" data-w="${esc(x.word.w)}"><div class="no">${x.word.n}</div>
+      <div><div><span class="w">${esc(x.word.w)}</span><span class="pos">${esc(x.word.p)}</span></div>
+        <div class="d">${esc(x.word.d)}</div>
+        <div class="meta">${x.miss ? `錯 ${x.miss} 次，` : '手動標記，'}連對 ${x.streak || 0} / 2，${fmt(x.last)}</div></div>
+      <button class="btn ghost sm" data-rm="${esc(x.word.w)}">移除</button></div>`).join('')}</div>${storeNote()}`;
+  $('#prac').onclick = () => { prefs.src = 'weak'; savePrefs(); startPractice(); };
+  $('#mask').onclick = () => { wmask = !wmask; viewWeak(); };
+  let armed = false;
+  $('#clr').onclick = e => {
+    if (!armed) { armed = true; e.target.textContent = '再按一次清除'; setTimeout(() => { armed = false; if (e.target.isConnected) e.target.textContent = '清除全部'; }, 3000); return; }
+    store.set('weak', {}); renderNav(); viewWeak();
+  };
+  $('#wl').onclick = e => {
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { const wk = getWeak(); delete wk[rm.dataset.rm]; store.set('weak', wk); renderNav(); viewWeak(); return; }
+    const t = e.target.closest('.w'); if (t) t.classList.add('rev');
+  };
+}
+
+/* ---------- history ---------- */
+function viewHistory() {
+  const h = getHist();
+  if (!h.length) {
+    app.innerHTML = `<h2>記錄</h2><div class="empty">還沒有記錄。完成一次測驗或練習後會出現在這裡。<br><a class="btn" href="#quiz">去做測驗</a></div>${storeNote()}`;
+    return;
+  }
+  const quizzes = h.filter(x => x.kind === 'quiz');
+  const stat = quizzes.length ? `測驗 ${quizzes.length} 次，平均 ${Math.round(quizzes.reduce((a, x) => a + x.right / x.total * 100, 0) / quizzes.length)} 分，最高 ${Math.round(Math.max(...quizzes.map(x => x.right / x.total * 100)))} 分。` : '';
+  app.innerHTML = `<h2>記錄</h2><p class="note">${stat}最近 ${h.length} 筆。</p>
+    <div style="margin-top:18px">${h.map(x => {
+      const label = x.kind === 'quiz' ? `測驗，${MODES[x.mode] || ''}${x.retry ? '，重做' : ''}` : `練習，${x.src === 'weak' ? '錯字' : '全部'}`;
+      const score = x.kind === 'quiz' ? `${Math.round(x.right / x.total * 100)} 分` : `${x.right} / ${x.total}`;
+      const sub = x.kind === 'quiz' ? `${x.right} / ${x.total}` : '一次拼對';
+      const wl = x.wrong.length ? x.wrong.map(y => `<div><b>${esc(y.w)}</b>${y.a !== undefined ? `<span class="typed">${y.a ? esc(y.a) : '未作答'}</span>` : ''}</div>`).join('') : '<span class="note">全對</span>';
+      return `<details class="h"><summary><span class="note">${fmt(x.t)}</span><span>${label}</span><span><span class="sc">${score}</span> <span class="note">${sub}</span></span></summary>
+        <div class="wl">${wl}</div></details>`;
+    }).join('')}</div>
+    <div class="actions"><button class="btn ghost" id="clr">清除記錄</button></div>${storeNote()}`;
+  let armed = false;
+  $('#clr').onclick = e => {
+    if (!armed) { armed = true; e.target.textContent = '再按一次清除'; setTimeout(() => { armed = false; if (e.target.isConnected) e.target.textContent = '清除記錄'; }, 3000); return; }
+    store.set('hist', []); viewHistory();
+  };
+}
+
+/* ---------- staff calibration: put the baseline on the third line ---------- */
+function calibrate() {
+  try {
+    const s = 15, m = 6, ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = '400 100px ' + getComputedStyle(document.body).fontFamily;
+    const xh = (ctx.measureText('x').actualBoundingBoxAscent || 52) / 100;
+    const F = s / xh, H = 3 * s + 2 * m;
+    /* measure where the baseline really falls in a box of height H, instead of trusting font metrics */
+    const probe = document.createElement('div');
+    probe.style.cssText = `position:absolute;left:-9999px;top:0;visibility:hidden;height:${H}px;font:400 ${F}px/${H}px ${getComputedStyle(document.body).fontFamily}`;
+    probe.innerHTML = 'x<i style="display:inline-block;width:0;height:0"></i>';
+    document.body.appendChild(probe);
+    const base = probe.lastChild.getBoundingClientRect().top - probe.getBoundingClientRect().top;
+    probe.remove();
+    const k = base - H / 2;
+    const r = document.documentElement.style;
+    r.setProperty('--s', s + 'px'); r.setProperty('--m', m + 'px'); r.setProperty('--F', F.toFixed(2) + 'px'); r.setProperty('--H', H + 'px');
+    r.setProperty('--pt', Math.max(0, s - 2 * k).toFixed(2) + 'px'); r.setProperty('--pb', Math.max(0, 2 * k - s).toFixed(2) + 'px');
+  } catch (e) {}
+}
+calibrate();
+if (document.fonts) { document.fonts.load('400 30px Andika').then(calibrate).catch(() => {}); document.fonts.ready.then(calibrate); }
+route();
+</script>
+</body>
+</html>
