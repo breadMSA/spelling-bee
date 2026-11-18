@@ -2,8 +2,16 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f8fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1624" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Spelling Bee">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Spelling Bee 練習</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +30,9 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--f)}
-main{max-width:720px;margin:0 auto;padding:28px 20px 72px}
+main{max-width:720px;margin:0 auto;
+  padding:calc(28px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left))}
+html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 a{color:inherit}
 h2{font:700 22px/1.3 var(--f);margin:0 0 6px}
 p{margin:0}
@@ -94,7 +104,7 @@ div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 .v.ok{color:var(--ok)}.v.bad{color:var(--bad)}
 .typed{color:var(--mute);text-decoration:line-through;font-size:16px}
 .onlywrong .q.ok{display:none}
-.dock{position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;background:var(--bg);border-top:1px solid var(--ink)}
+.dock{position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--ink)}
 .sumry{padding-bottom:26px}
 .score{display:flex;align-items:baseline;gap:10px}
 .score .n{font-size:64px;font-weight:700;line-height:1}
@@ -119,6 +129,11 @@ div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 .star{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:0;background:none;border-radius:8px;color:var(--mute);cursor:pointer}
 .star svg{fill:none;stroke:currentColor;stroke-width:1.6}
 .star:hover{color:var(--ink)}
+.say{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;border-radius:8px;color:var(--mute);cursor:pointer;vertical-align:middle;margin-left:2px}
+.say svg{fill:currentColor;stroke:currentColor;stroke-width:1.4}
+.say svg path+path{fill:none;stroke-linecap:round}
+.say:hover{color:var(--ink)}
+.nosay .say{display:none}
 .star.on{color:var(--ink)}
 .star.on svg{fill:currentColor}
 .entry .no{color:var(--mute);font-size:14px;padding-top:4px}
@@ -461,7 +476,22 @@ const fmt = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDat
 const seg = (name, opts, val) => `<div class="seg" role="radiogroup">${Object.entries(opts).map(([k, l]) =>
   `<label><input type="radio" name="${name}" value="${k}" ${k === val ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>`;
 const picked = n => $(`input[name="${n}"]:checked`).value;
-const maskDef = w => w.d.replace(new RegExp('\\b' + w.w + '\\w*', 'gi'), '____');
+const SAY = w => `<button class="say" data-say="${esc(w)}" aria-label="發音" title="發音"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z" stroke-linejoin="round"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></button>`;
+function speak(word) {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    const ss = window.speechSynthesis;
+    if (ss.speaking || ss.pending) ss.cancel();
+    const u = new SpeechSynthesisUtterance(word);
+    u.lang = 'en-US'; u.rate = 0.9;
+    const v = ss.getVoices().find(x => x.lang === 'en-US' || x.lang === 'en_US');
+    if (v) u.voice = v;
+    ss.speak(u);
+  } catch (e) {}
+}
+if (!('speechSynthesis' in window)) document.documentElement.classList.add('nosay');
+document.addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) speak(b.dataset.say); });
+const maskDef = w =>w.d.replace(new RegExp('\\b' + w.w + '\\w*', 'gi'), '____');
 function splitSentence(w) {
   const m = w.s.match(new RegExp('\\b' + w.w + '\\b', 'i'));
   return [w.s.slice(0, m.index), w.s.slice(m.index + m[0].length)];
@@ -493,8 +523,8 @@ function qDone(q, val, ok) {
   if (q.type === 'def') prompt = `<p class="prompt">${esc(maskDef(w))}<span class="pos">${esc(w.p)}</span></p>`;
   else { const [b, a] = splitSentence(w); prompt = `<p class="prompt">${esc(b)}<span class="fill">${esc(w.w)}</span>${esc(a)}</p>`; }
   const verdict = ok
-    ? `<span class="v ok">正確</span>${q.type === 'def' ? `<div class="staff">${esc(w.w)}</div>` : ''}`
-    : `<span class="v bad">錯誤</span><div class="staff">${esc(w.w)}</div><span class="typed">${val ? esc(val) : '未作答'}</span>`;
+    ? `<span class="v ok">正確</span>${q.type === 'def' ? `<div class="staff">${esc(w.w)}</div>` : ''}${SAY(w.w)}`
+    : `<span class="v bad">錯誤</span><div class="staff">${esc(w.w)}</div>${SAY(w.w)}<span class="typed">${val ? esc(val) : '未作答'}</span>`;
   return `${prompt}<div class="verdict">${verdict}</div>`;
 }
 function bindFields(root, onChange) {
@@ -540,7 +570,7 @@ function viewList() {
       const re = new RegExp('\\b(' + w.w + '\\w*)', 'gi');
       return `<div class="entry" data-w="${esc(w.w)}" data-l="${w.w[0].toLowerCase()}" data-t="${esc((w.w + ' ' + w.d).toLowerCase())}">
         <div class="no">${w.n}</div>
-        <div><div><span class="w">${esc(w.w)}</span><span class="pos">${esc(w.p)}</span></div>
+        <div><div><span class="w">${esc(w.w)}</span>${SAY(w.w)}<span class="pos">${esc(w.p)}</span></div>
           <div class="d">${esc(w.d)}</div><div class="s">${esc(w.s).replace(re, '<b>$1</b>')}</div></div>
         <button class="star${wk[w.w] ? ' on' : ''}" data-flag="${esc(w.w)}" aria-pressed="${!!wk[w.w]}" aria-label="標記為不會" title="標記為不會">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3.4l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.2l-5.4 2.9 1.1-6.1L3.2 9.8l6.1-.8z" stroke-linejoin="round"/></svg></button></div>`;
@@ -699,7 +729,7 @@ function viewWeak() {
       <button class="btn ghost" id="clr">清除全部</button></div>
     <div id="wl" class="${wmask ? 'm-word' : ''}" style="margin-top:22px">
     ${items.map(x => `<div class="entry" data-w="${esc(x.word.w)}"><div class="no">${x.word.n}</div>
-      <div><div><span class="w">${esc(x.word.w)}</span><span class="pos">${esc(x.word.p)}</span></div>
+      <div><div><span class="w">${esc(x.word.w)}</span>${SAY(x.word.w)}<span class="pos">${esc(x.word.p)}</span></div>
         <div class="d">${esc(x.word.d)}</div>
         <div class="meta">${x.miss ? `錯 ${x.miss} 次，` : '手動標記，'}連對 ${x.streak || 0} / 2，${fmt(x.last)}</div></div>
       <button class="btn ghost sm" data-rm="${esc(x.word.w)}">移除</button></div>`).join('')}</div>${storeNote()}`;
@@ -762,6 +792,9 @@ function calibrate() {
     r.setProperty('--s', s + 'px'); r.setProperty('--m', m + 'px'); r.setProperty('--F', F.toFixed(2) + 'px'); r.setProperty('--H', H + 'px');
     r.setProperty('--pt', Math.max(0, s - 2 * k).toFixed(2) + 'px'); r.setProperty('--pb', Math.max(0, 2 * k - s).toFixed(2) + 'px');
   } catch (e) {}
+}
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 calibrate();
 if (document.fonts) { document.fonts.load('400 30px Andika').then(calibrate).catch(() => {}); document.fonts.ready.then(calibrate); }
