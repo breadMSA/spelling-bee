@@ -44,7 +44,10 @@ nav .ct{font-size:12px;margin-left:5px;color:var(--mute);font-weight:400}
 .btn:active{transform:translateY(1px)}
 .btn.sec{background:transparent;color:var(--ink);border-color:var(--rule)}
 .btn.sec:hover{border-color:var(--ink)}
-.btn.sec[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.lt.starf{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:34px}
+.lt.starf svg{fill:none;stroke:currentColor;stroke-width:1.7}
+.lt.starf[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.lt.starf[aria-pressed="true"] svg{fill:currentColor}
 .btn.ghost{background:none;border-color:transparent;color:var(--mute);font-weight:400;padding:0 10px;text-decoration:underline;text-underline-offset:4px}
 .btn.ghost:hover{color:var(--ink)}
 .btn.sm{height:32px;padding:0 10px;font-size:13px}
@@ -525,10 +528,11 @@ function viewList() {
   const letters = [...new Set(WORDS.map(w => w.w[0].toLowerCase()))];
   const wk = getWeak();
   app.innerHTML = `
-    <div class="tools"><input class="find" id="find" type="search" placeholder="搜尋單字或定義" ${ATTR}>
-      <button class="btn sec" id="onlystar" aria-pressed="false">只看已標記<span id="sc" style="margin-left:6px;font-weight:400"></span></button></div>
-    <div class="letters" id="letters"><button class="lt on" data-l="">全部</button>${letters.map(l => `<button class="lt" data-l="${l}">${l.toUpperCase()}</button>`).join('')}</div>
-    <div class="row" style="margin:12px 0 10px"><span class="lab">自測</span>${seg('lm', { none: '全部顯示', word: '遮住單字', def: '遮住定義' }, prefs.lm)}
+    <div class="tools"><input class="find" id="find" type="search" placeholder="搜尋單字或定義" ${ATTR}></div>
+    <div class="letters" id="letters"><button class="lt on" data-l="">全部</button>${letters.map(l => `<button class="lt" data-l="${l}">${l.toUpperCase()}</button>`).join('')}
+      <button class="lt starf" id="starf" aria-pressed="false" aria-label="只看已標星" title="只看已標星">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 3.4l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.2l-5.4 2.9 1.1-6.1L3.2 9.8l6.1-.8z" stroke-linejoin="round"/></svg><span id="sc"></span></button></div>
+    <div class="row" style="margin:12px 0 12px"><span class="lab">自測</span>${seg('lm', { none: '全部顯示', word: '遮住單字', def: '遮住定義' }, prefs.lm)}
       <span class="note" id="shown"></span></div>
     <p class="empty" id="none" hidden>沒有符合的字。在單字旁點星星可以標記。</p>
     <div id="entries" class="${prefs.lm === 'word' ? 'm-word' : prefs.lm === 'def' ? 'm-def' : ''}">
@@ -543,7 +547,7 @@ function viewList() {
     }).join('')}</div>`;
   let L = '';
   const apply = () => {
-    const t = $('#find').value.trim().toLowerCase(), S = $('#onlystar').getAttribute('aria-pressed') === 'true'; let n = 0;
+    const t = $('#find').value.trim().toLowerCase(), S = $('#starf').getAttribute('aria-pressed') === 'true'; let n = 0;
     $$('.entry').forEach(e => {
       const show = (!L || e.dataset.l === L) && (!t || e.dataset.t.includes(t)) && (!S || e.querySelector('.star.on'));
       e.hidden = !show; if (show) n++;
@@ -554,10 +558,11 @@ function viewList() {
   const starCount = () => { const c = Object.keys(getWeak()).length; $('#sc').textContent = c ? c : ''; };
   starCount();
   $('#find').oninput = apply;
-  $('#onlystar').onclick = e => {
-    const b = e.currentTarget; b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); apply();
+  $('#letters').onclick = e => {
+    const b = e.target.closest('.lt'); if (!b) return;
+    if (b.id === 'starf') { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); apply(); return; }
+    L = b.dataset.l; $$('.lt[data-l]').forEach(x => x.classList.toggle('on', x === b)); apply();
   };
-  $('#letters').onclick = e => { const b = e.target.closest('.lt'); if (!b) return; L = b.dataset.l; $$('.lt').forEach(x => x.classList.toggle('on', x === b)); apply(); };
   $$('input[name="lm"]').forEach(r => r.onchange = () => {
     prefs.lm = picked('lm'); savePrefs();
     $('#entries').className = prefs.lm === 'word' ? 'm-word' : prefs.lm === 'def' ? 'm-def' : '';
