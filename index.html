@@ -429,7 +429,10 @@ const WMAP = Object.fromEntries(WORDS.map(x => [x.w, x]));
 const ALT = { realize: ['realise'] };
 const N = 25;
 const MODES = { mix: '混合', def: '看定義', cloze: '例句填空' };
-const ATTR = 'autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"';
+/* Gboard ignores autocorrect="off"; an email-type field makes it stop correcting and hide suggestions */
+const ANDROID = /Android/i.test(navigator.userAgent);
+const ATTR = 'autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" data-gramm="false"'
+  + (ANDROID ? ' inputmode="email" enterkeyhint="next"' : '');
 
 /* ---------- random: uniform, unbiased ---------- */
 function rnd(n) {
