@@ -470,7 +470,7 @@ const store = (() => {
     set(k, v) { mem[k] = v; try { if (ok) localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
 })();
-const prefs = Object.assign({ mode: 'mix', src: 'all', lm: 'none' }, store.get('prefs', {}));
+const prefs = Object.assign({ mode: 'mix', src: 'all', lm: 'none', sd: 'off' }, store.get('prefs', {}));
 const savePrefs = () => store.set('prefs', prefs);
 const getWeak = () => store.get('weak', {});
 const getHist = () => store.get('hist', []);
@@ -529,7 +529,7 @@ function make(word, mode) {
   return { word, type };
 }
 function isRight(q, val) {
-  const full = val.trim();
+  const full = val.replace(/[^A-Za-z]/g, '');   // stray symbols or spaces are not spelling mistakes
   const accept = [q.word.w, ...(ALT[q.word.w] || [])];
   const strict = /[A-Z]/.test(q.word.w);
   return accept.some(a => strict ? a === full : a.toLowerCase() === full.toLowerCase());
@@ -541,15 +541,17 @@ function qBody(q, i) {
   if (q.type === 'def') return `<p class="prompt">${esc(maskDef(w))}${pos}</p>${patHint(w)}<input class="staff fld" data-i="${i}" aria-label="拼出單字" ${ATTR}>`;
   const [b, a] = splitSentence(w);
   return `<p class="prompt">${esc(b)}<input class="blank fld" data-i="${i}" aria-label="填入單字" ${ATTR}>${esc(a)}${pos}</p>${patHint(w)}
-    <button class="btn ghost sm" data-hint="${i}" type="button">看定義</button><p class="hint" id="h${i}" hidden>${esc(maskDef(w))}</p>`;
+    ${prefs.sd === 'on' ? '' : `<button class="btn ghost sm" data-hint="${i}" type="button">看定義<span class="kbhint">　按 /</span></button>`}
+    <p class="hint" id="h${i}" ${prefs.sd === 'on' ? '' : 'hidden'}>${esc(maskDef(w))}</p>`;
 }
+const ignored = val => { const x = (val || '').replace(/[A-Za-z]/g, '').replace(/\s/g, ''); return x ? `<span class="typed" style="text-decoration:none">已忽略符號 ${esc(x)}</span>` : ''; };
 function qDone(q, val, ok) {
   const w = q.word;
   let prompt;
   if (q.type === 'def') prompt = `<p class="prompt">${esc(maskDef(w))}<span class="pos">${esc(w.p)}</span></p>`;
   else { const [b, a] = splitSentence(w); prompt = `<p class="prompt">${esc(b)}<span class="fill">${esc(w.w)}</span>${esc(a)}</p>`; }
   const verdict = ok
-    ? `<span class="v ok">正確</span>${q.type === 'def' ? `<div class="staff">${esc(w.w)}</div>` : ''}${SAY(w.w)}`
+    ? `<span class="v ok">正確</span>${q.type === 'def' ? `<div class="staff">${esc(w.w)}</div>` : ''}${SAY(w.w)}${ignored(val)}`
     : `<span class="v bad">錯誤</span><div class="staff">${esc(w.w)}</div>${SAY(w.w)}<span class="typed">${val ? esc(val) : '未作答'}</span>`;
   return `${prompt}<div class="verdict">${verdict}</div>`;
 }
@@ -560,7 +562,14 @@ function bindFields(root, onChange) {
     el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); (f[k + 1] || $('#submit') || $('#act'))?.focus(); } });
     if (onChange) el.addEventListener('input', onChange);
   });
-  $$('[data-hint]', root).forEach(b => b.onclick = () => { const h = $('#h' + b.dataset.hint); h.hidden = !h.hidden; });
+  const toggleHint = i => { const h = $('#h' + i); if (h && prefs.sd !== 'on') h.hidden = !h.hidden; };
+  $$('[data-hint]', root).forEach(b => {
+    b.onmousedown = e => e.preventDefault();          // keep focus (and the keyboard) in the answer field
+    b.onclick = () => toggleHint(b.dataset.hint);
+  });
+  f.forEach(el => el.addEventListener('keydown', e => {
+    if (e.key === '/' && $('[data-hint="' + el.dataset.i + '"]')) { e.preventDefault(); toggleHint(el.dataset.i); }
+  }));
   return f;
 }
 
@@ -645,10 +654,11 @@ function viewQuiz() {
     <h2>測驗</h2>
     <p class="note">從 250 字中不重複隨機抽 25 題，每題 4 分。</p>
     <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
+    <div class="row"><span class="lab">定義</span>${seg('sd', { off: '按 / 或按鈕才看', on: '例句題一律顯示' }, prefs.sd)}</div>
     <div class="actions"><button class="btn" id="go">開始測驗</button></div>
     ${last ? `<p class="note" style="margin-top:28px">上次 ${fmt(last.t)}，${last.right * 4} 分（${last.right}/${last.total}）。<a href="#history">全部記錄</a></p>` : ''}
     ${storeNote()}`;
-  $('#go').onclick = () => { prefs.mode = picked('mode'); savePrefs(); startQuiz(); };
+  $('#go').onclick = () => { prefs.mode = picked('mode'); prefs.sd = picked('sd'); savePrefs(); startQuiz(); };
 }
 function startQuiz(list) {
   retry = !!list;
@@ -697,9 +707,10 @@ function viewPractice() {
     <p class="note">一次一題，答完馬上對答案。答錯的字隔幾題會再出現，拼對才算過。</p>
     <div class="row"><span class="lab">範圍</span>${seg('src', { all: '全部 250 字', weak: `只練錯字（${wn}）` }, prefs.src)}</div>
     <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
+    <div class="row"><span class="lab">定義</span>${seg('sd', { off: '按 / 或按鈕才看', on: '例句題一律顯示' }, prefs.sd)}</div>
     <div class="actions"><button class="btn" id="go">開始練習</button></div>
     <p class="note" style="margin-top:28px">在測驗或練習中拼錯的字會進錯字清單。之後連續兩次一次就拼對，會自動移出。</p>${storeNote()}`;
-  $('#go').onclick = () => { prefs.src = picked('src'); prefs.mode = picked('mode'); savePrefs(); startPractice(); };
+  $('#go').onclick = () => { prefs.src = picked('src'); prefs.mode = picked('mode'); prefs.sd = picked('sd'); savePrefs(); startPractice(); };
 }
 function startPractice() {
   const wk = getWeak();
@@ -834,7 +845,7 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
-const VERSION = '2026-11-19.4';
+const VERSION = '2026-11-19.5';
 $('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const hadController = !!navigator.serviceWorker.controller;
