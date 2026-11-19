@@ -37,6 +37,8 @@ a{color:inherit}
 h2{font:700 22px/1.3 var(--f);margin:0 0 6px}
 p{margin:0}
 .note{color:var(--mute);font-size:14px}
+.ver{font-size:12px;margin-top:40px;opacity:.7}
+body.focus .ver{display:none}
 :focus-visible{outline:2px solid var(--base);outline-offset:2px}
 
 /* header + nav */
@@ -179,6 +181,7 @@ body.focus main{padding-top:calc(14px + env(safe-area-inset-top))}
   <div class="brand">Spelling Bee<small>世新 250 字</small></div>
   <nav id="nav"></nav>
   <div id="app"></div>
+  <p class="note ver">版本 <span id="ver"></span></p>
 </main>
 
 <script>
@@ -440,7 +443,7 @@ const N = 25;
 const MODES = { mix: '混合', def: '看定義', cloze: '例句填空' };
 /* Gboard ignores autocorrect="off"; an email-type field makes it stop correcting and hide suggestions */
 const ANDROID = /Android/i.test(navigator.userAgent);
-const ATTR = 'autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" data-gramm="false"'
+const ATTR = 'autocomplete="nope" autocapitalize="none" autocorrect="off" spellcheck="false" data-gramm="false"'
   + (ANDROID ? ' inputmode="email"' : '');
 
 /* ---------- random: uniform, unbiased ---------- */
@@ -820,8 +823,17 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
+const VERSION = '2026-11-19.3';
+$('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  const hadController = !!navigator.serviceWorker.controller;
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  /* a new version took over: reload to use it, unless a quiz or practice is in progress */
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded || document.querySelector('.dock')) return;
+    reloaded = true; location.reload();
+  });
 }
 calibrate();
 if (document.fonts) { document.fonts.load('400 30px Andika').then(calibrate).catch(() => {}); document.fonts.ready.then(calibrate); }
