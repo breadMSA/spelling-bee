@@ -101,6 +101,8 @@ div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 .prompt .pos{color:var(--mute);font-size:13px;margin-left:6px}
 .prompt .fill{border-bottom:2px solid var(--ink)}
 .hint{margin-top:8px;color:var(--mute);font-size:14px}
+.pat{margin:-4px 0 12px;font-size:17px;letter-spacing:.2em}
+.pat span{margin-left:14px;font-size:13px;letter-spacing:0;color:var(--mute)}
 .verdict{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .v{font-size:13px;font-weight:700}
 .v.ok{color:var(--ok)}.v.bad{color:var(--bad)}
@@ -506,7 +508,16 @@ function speak(word) {
 }
 if (!('speechSynthesis' in window)) document.documentElement.classList.add('nosay');
 document.addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) speak(b.dataset.say); });
-const maskDef = w =>w.d.replace(new RegExp('\\b' + w.w + '\\w*', 'gi'), '____');
+/* words whose definitions can't be told apart: show first letter + length so the question has one answer */
+const CLUSTERS = [
+  ['weird', 'bizarre', 'unnatural', 'abnormal'], ['jumbo', 'gigantic', 'elephantine'], ['expensive', 'valuable'],
+  ['magician', 'sorcerer', 'wizard'], ['difficult', 'tough', 'puzzling'], ['benevolent', 'humane'],
+  ['ecstatic', 'joyful'], ['frightened', 'fearsome'], ['appropriate', 'ideal']
+];
+const HINTED = new Set(CLUSTERS.flat());
+const patHint = w => HINTED.has(w.w)
+  ? `<p class="pat">${esc(w.w[0])} ${Array(w.w.length - 1).fill('_').join(' ')}<span>${w.w.length} 個字母</span></p>` : '';
+const maskDef = w => w.d.replace(new RegExp('\\b' + w.w + '\\w*', 'gi'), '____');
 function splitSentence(w) {
   const m = w.s.match(new RegExp('\\b' + w.w + '\\b', 'i'));
   return [w.s.slice(0, m.index), w.s.slice(m.index + m[0].length)];
@@ -527,9 +538,9 @@ function isRight(q, val) {
 /* question body (before answering) and its marked version (after) */
 function qBody(q, i) {
   const w = q.word, pos = `<span class="pos">${esc(w.p)}</span>`;
-  if (q.type === 'def') return `<p class="prompt">${esc(maskDef(w))}${pos}</p><input class="staff fld" data-i="${i}" aria-label="拼出單字" ${ATTR}>`;
+  if (q.type === 'def') return `<p class="prompt">${esc(maskDef(w))}${pos}</p>${patHint(w)}<input class="staff fld" data-i="${i}" aria-label="拼出單字" ${ATTR}>`;
   const [b, a] = splitSentence(w);
-  return `<p class="prompt">${esc(b)}<input class="blank fld" data-i="${i}" aria-label="填入單字" ${ATTR}>${esc(a)}${pos}</p>
+  return `<p class="prompt">${esc(b)}<input class="blank fld" data-i="${i}" aria-label="填入單字" ${ATTR}>${esc(a)}${pos}</p>${patHint(w)}
     <button class="btn ghost sm" data-hint="${i}" type="button">看定義</button><p class="hint" id="h${i}" hidden>${esc(maskDef(w))}</p>`;
 }
 function qDone(q, val, ok) {
@@ -823,7 +834,7 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
-const VERSION = '2026-11-19.3';
+const VERSION = '2026-11-19.4';
 $('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const hadController = !!navigator.serviceWorker.controller;
