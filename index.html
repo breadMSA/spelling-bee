@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f6f8fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1624" media="(prefers-color-scheme: dark)">
@@ -104,7 +104,14 @@ div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 .v.ok{color:var(--ok)}.v.bad{color:var(--bad)}
 .typed{color:var(--mute);text-decoration:line-through;font-size:16px}
 .onlywrong .q.ok{display:none}
-.dock{position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--ink)}
+/* action bar pinned above the on-screen keyboard (--kb is set from visualViewport) */
+.dock{position:fixed;left:0;right:0;bottom:var(--kb,0px);z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:12px max(20px, calc((100vw - 720px)/2 + 20px)) calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--ink)}
+.dock .btn{min-width:7.5rem}
+.dock-sp{height:88px}
+body.focus .brand,body.focus #nav{display:none}
+body.focus main{padding-top:calc(14px + env(safe-area-inset-top))}
+@media (pointer:coarse){.kbhint{display:none}}
 .sumry{padding-bottom:26px}
 .score{display:flex;align-items:baseline;gap:10px}
 .score .n{font-size:64px;font-weight:700;line-height:1}
@@ -158,6 +165,8 @@ div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 .h .wl{padding:0 0 16px 7.2em}
 .h .wl div{display:flex;gap:14px;align-items:baseline}
 @media (max-width:520px){
+  .prompt{font-size:17px}
+  .pcard .prompt{font-size:20px}
   .h .wl{padding-left:0}
   .h summary{grid-template-columns:6em 1fr auto}
   .score .n{font-size:52px}
@@ -432,7 +441,7 @@ const MODES = { mix: '混合', def: '看定義', cloze: '例句填空' };
 /* Gboard ignores autocorrect="off"; an email-type field makes it stop correcting and hide suggestions */
 const ANDROID = /Android/i.test(navigator.userAgent);
 const ATTR = 'autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" data-gramm="false"'
-  + (ANDROID ? ' inputmode="email" enterkeyhint="next"' : '');
+  + (ANDROID ? ' inputmode="email"' : '');
 
 /* ---------- random: uniform, unbiased ---------- */
 function rnd(n) {
@@ -533,6 +542,7 @@ function qDone(q, val, ok) {
 function bindFields(root, onChange) {
   const f = $$('.fld', root);
   f.forEach((el, k) => {
+    el.setAttribute('enterkeyhint', k === f.length - 1 ? 'go' : 'next');
     el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); (f[k + 1] || $('#submit') || $('#act'))?.focus(); } });
     if (onChange) el.addEventListener('input', onChange);
   });
@@ -552,6 +562,7 @@ const VIEWS = { list: viewList, quiz: viewQuiz, practice: viewPractice, weak: vi
 function route() {
   const h = (location.hash || '#quiz').slice(1);
   cur = VIEWS[h] ? h : 'quiz';
+  document.body.classList.remove('focus');
   renderNav(); window.scrollTo(0, 0); VIEWS[cur]();
 }
 window.addEventListener('hashchange', route);
@@ -630,6 +641,7 @@ function startQuiz(list) {
   qs = list || sample(WORDS, N).map(w => make(w, prefs.mode));
   app.innerHTML = `<div id="paper">${qs.map((q, i) =>
     `<div class="q" id="q${i}"><div class="no">${i + 1}</div><div class="body">${qBody(q, i)}</div></div>`).join('')}</div>
+    <div class="dock-sp"></div>
     <div class="dock"><span class="note" id="cnt"></span><button class="btn" id="submit">交卷</button></div>`;
   const count = () => { $('#cnt').textContent = `已填 ${f.filter(x => x.value.trim()).length} / ${qs.length}`; };
   const f = bindFields(app, count);
@@ -646,7 +658,7 @@ function gradeQuiz() {
     row.querySelector('.body').innerHTML = qDone(q, val, ok);
   });
   logHist({ t: Date.now(), kind: 'quiz', mode: prefs.mode, retry, right, total: qs.length, wrong });
-  $('.dock').remove();
+  $('.dock').remove(); $('.dock-sp').remove();
   app.insertAdjacentHTML('afterbegin', `<section class="sumry">
     <div class="score"><span class="n">${right * 4}</span><span class="of">/ ${qs.length * 4} 分</span></div>
     <p class="note">${right} / ${qs.length} 題正確${retry ? '（重做）' : ''}</p>
@@ -692,7 +704,9 @@ function card() {
   app.innerHTML = `<div class="pbar"><i style="width:${done / P.total * 100}%"></i></div>
     <div class="phead"><span class="note">${done} / ${P.total}</span><button class="btn ghost sm" id="stop">結束</button></div>
     <div class="pcard" id="q0"><div class="body">${qBody(q, 0)}</div></div>
-    <div class="actions"><button class="btn" id="act">檢查</button><span class="note">按 Enter</span></div>`;
+    <div class="dock-sp"></div>
+    <div class="dock"><span class="note kbhint">按 Enter</span><button class="btn" id="act">檢查</button></div>`;
+  document.body.classList.add('focus');
   const f = bindFields(app); f[0].focus();
   f[0].addEventListener('keydown', e => { if (e.key === 'Enter' && !f[0].disabled) check(); });
   $('#act').onclick = check; $('#stop').onclick = endPractice;
@@ -709,6 +723,7 @@ function check() {
 }
 function endPractice() {
   const answered = P.total - leftWords(), miss = [...P.failed];
+  document.body.classList.remove('focus');
   if (answered > 0) logHist({ t: Date.now(), kind: 'practice', mode: prefs.mode, src: prefs.src, right: P.first, total: answered, wrong: miss.map(w => ({ w })) });
   app.innerHTML = `<section class="sumry"><div class="score"><span class="n">${P.first}</span><span class="of">/ ${answered} 一次就拼對</span></div>
     ${miss.length ? `<p class="note" style="margin-top:10px">這輪拼錯過的字</p><div class="chips">${miss.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div>` : '<p class="note" style="margin-top:10px">這輪沒有拼錯。</p>'}
@@ -795,6 +810,15 @@ function calibrate() {
     r.setProperty('--s', s + 'px'); r.setProperty('--m', m + 'px'); r.setProperty('--F', F.toFixed(2) + 'px'); r.setProperty('--H', H + 'px');
     r.setProperty('--pt', Math.max(0, s - 2 * k).toFixed(2) + 'px'); r.setProperty('--pb', Math.max(0, 2 * k - s).toFixed(2) + 'px');
   } catch (e) {}
+}
+/* keep the pinned action bar above the keyboard when the browser doesn't resize the page itself */
+if (window.visualViewport) {
+  const vv = window.visualViewport;
+  const upd = () => {
+    const kb = vv.scale > 1.01 ? 0 : Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty('--kb', Math.round(kb) + 'px');
+  };
+  vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
