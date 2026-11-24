@@ -470,7 +470,7 @@ const store = (() => {
     set(k, v) { mem[k] = v; try { if (ok) localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
 })();
-const prefs = Object.assign({ mode: 'mix', src: 'all', lm: 'none', sd: 'off' }, store.get('prefs', {}));
+const prefs = Object.assign({ mode: 'mix', src: 'all', lm: 'none', sd: 'off', pt: 'auto' }, store.get('prefs', {}));
 const savePrefs = () => store.set('prefs', prefs);
 const getWeak = () => store.get('weak', {});
 const getHist = () => store.get('hist', []);
@@ -515,7 +515,7 @@ const CLUSTERS = [
   ['ecstatic', 'joyful'], ['frightened', 'fearsome'], ['appropriate', 'ideal']
 ];
 const HINTED = new Set(CLUSTERS.flat());
-const patHint = w => HINTED.has(w.w)
+const patHint = w => (prefs.pt === 'on' || (prefs.pt !== 'off' && HINTED.has(w.w)))
   ? `<p class="pat">${esc(w.w[0])} ${Array(w.w.length - 1).fill('_').join(' ')}<span>${w.w.length} 個字母</span></p>` : '';
 const maskDef = w => w.d.replace(new RegExp('\\b' + w.w + '\\w*', 'gi'), '____');
 function splitSentence(w) {
@@ -655,10 +655,11 @@ function viewQuiz() {
     <p class="note">從 250 字中不重複隨機抽 25 題，每題 4 分。</p>
     <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
     <div class="row"><span class="lab">定義</span>${seg('sd', { off: '按 / 或按鈕才看', on: '例句題一律顯示' }, prefs.sd)}</div>
+    <div class="row"><span class="lab">字母提示</span>${seg('pt', { auto: '只在同義字出現', on: '每題顯示', off: '不顯示' }, prefs.pt)}</div>
     <div class="actions"><button class="btn" id="go">開始測驗</button></div>
     ${last ? `<p class="note" style="margin-top:28px">上次 ${fmt(last.t)}，${last.right * 4} 分（${last.right}/${last.total}）。<a href="#history">全部記錄</a></p>` : ''}
     ${storeNote()}`;
-  $('#go').onclick = () => { prefs.mode = picked('mode'); prefs.sd = picked('sd'); savePrefs(); startQuiz(); };
+  $('#go').onclick = () => { prefs.mode = picked('mode'); prefs.sd = picked('sd'); prefs.pt = picked('pt'); savePrefs(); startQuiz(); };
 }
 function startQuiz(list) {
   retry = !!list;
@@ -708,9 +709,10 @@ function viewPractice() {
     <div class="row"><span class="lab">範圍</span>${seg('src', { all: '全部 250 字', weak: `只練錯字（${wn}）` }, prefs.src)}</div>
     <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
     <div class="row"><span class="lab">定義</span>${seg('sd', { off: '按 / 或按鈕才看', on: '例句題一律顯示' }, prefs.sd)}</div>
+    <div class="row"><span class="lab">字母提示</span>${seg('pt', { auto: '只在同義字出現', on: '每題顯示', off: '不顯示' }, prefs.pt)}</div>
     <div class="actions"><button class="btn" id="go">開始練習</button></div>
     <p class="note" style="margin-top:28px">在測驗或練習中拼錯的字會進錯字清單。之後連續兩次一次就拼對，會自動移出。</p>${storeNote()}`;
-  $('#go').onclick = () => { prefs.src = picked('src'); prefs.mode = picked('mode'); prefs.sd = picked('sd'); savePrefs(); startPractice(); };
+  $('#go').onclick = () => { prefs.src = picked('src'); prefs.mode = picked('mode'); prefs.sd = picked('sd'); prefs.pt = picked('pt'); savePrefs(); startPractice(); };
 }
 function startPractice() {
   const wk = getWeak();
@@ -845,7 +847,7 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
-const VERSION = '2026-11-19.5';
+const VERSION = '2026-11-24.1';
 $('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const hadController = !!navigator.serviceWorker.controller;
