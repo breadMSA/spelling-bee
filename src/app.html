@@ -173,6 +173,17 @@ div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 @media (min-width:760px){.sheet{bottom:24px}}
 .sheet .w{font-size:22px}
 .sheet .x{position:absolute;right:6px;top:6px}
+.routine{margin:0 0 6px}
+.rh{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:12px 0 4px}
+.wd{border:1px solid var(--rule);border-radius:10px;padding:5px 0 6px;text-align:center;font-size:11.5px;color:var(--mute);line-height:1.3}
+.wd b{display:block;font-size:15px;color:var(--ink)}
+.wd.now{background:var(--pen);color:var(--onpen);border-color:var(--pen)}.wd.now b{color:var(--onpen)}
+.task{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:13px 0;border-top:1px solid var(--rule)}
+.task:first-of-type{margin-top:10px}
+.task .tt{font-weight:700}
+.task.done .tt::after{content:" ✓";color:var(--ok)}
+.task .go{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .homego{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
 
 /* word list */
@@ -325,9 +336,9 @@ function recordResult(word, ok, first) {
 function dropWeak(wk, w) { delete wk[w]; const rm = getRm(); rm[w] = Date.now(); store.set('rm', rm); }
 function logHist(rec) { const h = getHist(); h.unshift(rec); store.set('hist', h.slice(0, 200)); }
 const stateOf = (w, wk, pg) => wk[w] ? 'weak' : !pg[w] ? 'new' : pg[w].ok >= 2 ? 'known' : 'learning';
-function pool(deck, filter) {
+function pool(deck, filter, exclude) {
   const wk = getWeak(), pg = getProg();
-  return ALL.filter(x => (deck === 'all' || x.deck === deck) &&
+  return ALL.filter(x => (deck === 'all' || x.deck === deck) && !(exclude && exclude.includes(x.deck)) &&
     (filter === 'all' || (filter === 'weak' ? !!wk[x.w] : !pg[x.w] && !wk[x.w])));
 }
 const storeNote = () => store.ok ? '' : '<p class="note" style="margin-top:20px">此環境無法長期儲存，錯字清單與記錄只在這次開啟期間保留。</p>';
@@ -452,12 +463,66 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
+/* ---------- weekly routine: learn, retest next day, spaced reviews, all counted from a start date ---------- */
+const WDN = ['日', '一', '二', '三', '四', '五', '六'], DAYMS = 864e5;
+const weeklyDecks = () => DECKS.filter(d => /^w\d/.test(d.id) && d.words.length);
+const today0 = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const markDone = id => { const rt = store.get('rt', {}), k = ymd(new Date()); (rt[k] = rt[k] || []).includes(id) || rt[k].push(id); store.set('rt', rt, true); };
+function dayKind(d, w) { return d === 0 ? '學' : d === 1 ? '測' : d === 3 ? '錯' : d === 4 && w >= 3 ? '混' : '·'; }
+function todayPlan() {
+  const WK = weeklyDecks(); if (!prefs.start || !WK.length) return null;
+  const [y, m, d0] = prefs.start.split('-').map(Number), start = new Date(y, m - 1, d0);
+  const idx = Math.round((today0() - start) / DAYMS);
+  if (idx < 0) return { before: -idx, start };
+  const w = Math.floor(idx / 7) + 1, d = idx % 7, have = w <= WK.length;
+  const cur = WK[Math.min(w, WK.length) - 1], prev = w > 1 ? WK[Math.min(w - 1, WK.length) - 1] : null, tasks = [];
+  if (d === 0) {
+    if (prev) tasks.push({ id: 'scan', title: '快速掃過上週的字', note: `第 ${w - 1} 週，過一遍就好`, scope: { deck: prev.id, filter: 'all', size: 'all' } });
+    tasks.push(have ? { id: 'learn', title: `學第 ${w} 週的新字`, note: '先看單字表、按喇叭聽，再練到每個字都拼對', list: cur.id, scope: { deck: cur.id, filter: 'new', size: 'all' } }
+      : { id: 'learn', title: `第 ${w} 週的新字還沒加進來`, note: '跟 Claude 說「出下一週」', none: true });
+  } else if (d === 1) tasks.push({ id: 'retest', title: '回測這週的字', note: '學完隔天最容易忘，這次最重要', scope: { deck: cur.id, filter: 'all', size: 'all' } });
+  else if (d === 3) tasks.push({ id: 'weak', title: '錯字快測', note: '只練錯字清單', scope: { deck: 'all', filter: 'weak', size: 'all' } });
+  else if (d === 4 && w >= 3) tasks.push({ id: 'mix', title: '混合複習', note: '前幾週和世新 250 字隨機抽 50 題', scope: { deck: 'all', filter: 'all', size: '50', exclude: [cur.id] } });
+  tasks.forEach(t => { if (t.scope) t.scope.task = t.id; });
+  return { w, d, start, tasks, cur };
+}
+function routineCard() {
+  if (!weeklyDecks().length) return '';
+  const pl = todayPlan(), t0 = ymd(new Date());
+  const setter = `<div class="row" style="margin-top:12px"><span class="lab">第 1 天</span><input class="field" type="date" id="rstart" value="${prefs.start || t0}" style="width:auto;height:40px">
+    <button class="btn sec sm" id="rtoday">今天</button>${prefs.start ? '<button class="btn ghost sm danger" id="rclr">關閉計畫</button>' : ''}</div>`;
+  if (!pl) return `<section class="card routine"><b>每週學習計畫</b>
+    <p class="note" style="margin-top:4px">選一天當每週的第 1 天（學新字的日子）。接下來每天打開，這裡會告訴你今天做什麼：學新字、隔天回測、第 4 天複習錯字、之後定期混合複習。</p>
+    ${setter}<div class="actions" style="margin-top:12px"><button class="btn sm" id="rgo">開始計畫</button></div></section>`;
+  if (pl.before) return `<section class="card routine"><div class="rh"><b>計畫 ${pl.before} 天後開始</b></div>${setter}<div class="actions" style="margin-top:12px"><button class="btn sm" id="rgo">儲存</button></div></section>`;
+  const done = (store.get('rt', {})[t0]) || [];
+  const strip = [...Array(7)].map((_, i) => `<div class="wd${i === pl.d ? ' now' : ''}">${WDN[(pl.start.getDay() + i) % 7]}<b>${dayKind(i, pl.w)}</b></div>`).join('');
+  return `<section class="card routine"><div class="rh"><b>今天：第 ${pl.w} 週・第 ${pl.d + 1} 天</b><button class="btn ghost sm" id="rset">設定</button></div>
+    <div class="week">${strip}</div><p class="note">學＝學新字　測＝回測　錯＝錯字快測　混＝混合複習</p>
+    ${pl.tasks.length ? pl.tasks.map((t, i) => `<div class="task${done.includes(t.id) ? ' done' : ''}"><div><div class="tt">${esc(t.title)}</div><div class="note">${esc(t.note)}</div></div>
+      ${t.none ? '' : `<div class="go">${t.list ? `<button class="btn sec sm" data-tl="${i}">看單字表</button>` : ''}<button class="btn sm" data-tp="${i}">開始</button></div>`}</div>`).join('')
+      : '<div class="task"><div><div class="tt">今天不用練</div><div class="note">想練的話，只用喇叭聽、把字寫在紙上，最接近比賽。</div></div></div>'}
+    <div id="rsetbox" hidden>${setter}<div class="actions" style="margin-top:12px"><button class="btn sm" id="rgo">儲存</button></div></div></section>`;
+}
+function bindRoutine() {
+  const pl = todayPlan(), $r = id => document.getElementById(id);
+  const save = () => { const v = $r('rstart') && $r('rstart').value; if (v) { prefs.start = v; savePrefs(); viewHome(); } };
+  if ($r('rgo')) $r('rgo').onclick = save;
+  if ($r('rtoday')) $r('rtoday').onclick = () => { $r('rstart').value = ymd(new Date()); };
+  if ($r('rclr')) $r('rclr').onclick = () => { delete prefs.start; savePrefs(); viewHome(); };
+  if ($r('rset')) $r('rset').onclick = () => { const b = $r('rsetbox'); b.hidden = !b.hidden; };
+  $$('[data-tp]').forEach(b => b.onclick = () => startPractice(pl.tasks[b.dataset.tp].scope));
+  $$('[data-tl]').forEach(b => b.onclick = () => { prefs.ld = pl.tasks[b.dataset.tl].list; savePrefs(); listDeck = prefs.ld; location.hash = '#list'; });
+}
+
 /* ---------- home: where every word stands ---------- */
 function viewHome() {
   const wk = getWeak(), pg = getProg(), cnt = { known: 0, learning: 0, weak: 0, new: 0 };
   ALL.forEach(x => cnt[stateOf(x.w, wk, pg)]++);
   app.innerHTML = `
-    <div class="legend">
+    ${routineCard()}
+    <div class="legend" style="margin-top:18px">
       <span><i class="sw known"></i><b>${cnt.known}</b> 已熟</span>
       <span><i class="sw learning"></i><b>${cnt.learning}</b> 練習中</span>
       <span><i class="sw weak"></i><b>${cnt.weak}</b> 錯字</span>
@@ -470,6 +535,7 @@ function viewHome() {
     }).join('')}
     <div class="homego"><button class="btn" id="hq">開始測驗</button><button class="btn sec" id="hp">逐題練習</button>
       ${cnt.weak ? `<button class="btn sec" id="hw">練錯字（${cnt.weak}）</button>` : ''}</div>${storeNote()}`;
+  bindRoutine();
   $('#hq').onclick = () => startQuiz();
   $('#hp').onclick = () => startPractice();
   const hw = $('#hw'); if (hw) hw.onclick = () => startPractice({ deck: 'all', filter: 'weak' });
@@ -631,12 +697,12 @@ function gradeQuiz() {
 let P = null;
 function startPractice(scope) {
   scope = scope && scope.deck ? scope : { deck: prefs.deck, filter: prefs.filter };
-  const p = pool(scope.deck, scope.filter);
+  const p = pool(scope.deck, scope.filter, scope.exclude);
   if (!p.length) {
     app.innerHTML = `<div class="empty">${scope.filter === 'weak' ? '錯字清單目前是空的。先做一次測驗或練習，拼錯的字會記在這裡。' : '這個範圍目前沒有字可以出。'}<br><a class="btn" href="#play">調整範圍</a></div>`;
     return;
   }
-  const k = prefs.size === 'all' ? p.length : Math.min(+prefs.size || 25, p.length);
+  const sz = scope.size || prefs.size, k = sz === 'all' ? p.length : Math.min(+sz || 25, p.length);
   P = { queue: sample(p, k).map(w => make(w, prefs.mode)), total: k, first: 0, failed: new Set(), scope };
   card();
 }
@@ -667,6 +733,7 @@ function check() {
 function endPractice() {
   const answered = P.total - leftWords(), miss = [...P.failed];
   document.body.classList.remove('focus');
+  if (answered > 0 && P.scope.task) markDone(P.scope.task);
   if (answered > 0) logHist({ t: Date.now(), kind: 'practice', mode: prefs.mode, deck: P.scope.deck, filter: P.scope.filter, right: P.first, total: answered, wrong: miss.map(w => ({ w })) });
   app.innerHTML = `<section class="sumry"><div class="score"><span class="n">${P.first}</span><span class="of">/ ${answered} 一次就拼對</span></div>
     ${miss.length ? `<p class="note" style="margin-top:10px">這輪拼錯過的字</p><div class="chips">${miss.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div>` : '<p class="note" style="margin-top:10px">這輪沒有拼錯。</p>'}
@@ -908,7 +975,7 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
-const VERSION = '2026-11-25.3';
+const VERSION = '2026-11-25.4';
 $('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const hadController = !!navigator.serviceWorker.controller;

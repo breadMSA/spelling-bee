@@ -71,6 +71,16 @@ to hard, a mix, not only rare words. Add `words/weekly-NN.txt` plus an entry at 
 English definitions and example sentences only (no Chinese; they said so). Write original definitions and concrete,
 easy-to-picture sentences (the user remembers by images). Check duplicates against every other deck: `build.py` warns.
 
+## Weekly routine (home screen card)
+
+The user picks a start date (day 1 of week 1); everything else is computed from today's date (`todayPlan()` in
+`src/app.html`). Week N uses the N-th weekly deck: decks whose id matches `w` + digits (`w01`, `w02`, ...), in the
+order they appear in `words/decks.json`. A week with no deck yet shows "new words not added yet"; add the next
+`words/weekly-NN.txt` and a `decks.json` entry (id `wNN`) when asked ("出下一週").
+Day 1 learn the new batch (and first sweep last week's), day 2 retest the batch (most important: forgetting is steepest
+in the first 24 h), day 4 wrong-word quick test, day 5 mixed review of older decks from week 3 on, other days free.
+Only the start date is stored (`prefs.start`, device-local, not synced); "done" ticks are in localStorage key `rt`.
+
 ## Login and sync (optional, for the user's own devices)
 
 Not needed to use the app. Accounts are username + password, but a static site cannot write to a repo, so:
