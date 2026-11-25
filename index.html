@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#f6f8fb" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1624" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef1f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1424" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Spelling Bee">
@@ -18,62 +18,90 @@
 <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f6f8fb;--ink:#16233f;--mute:#667189;--rule:#d9e0ec;--line:#b4c6e3;--base:#5d82bf;
-  --ok:#23704f;--bad:#b3261e;--soft:#e8edf6;
+  --bg:#eef1f6;--card:#fff;--ink:#14203b;--mute:#5a6783;--rule:#d6deeb;--soft:#e3e9f3;
+  --pen:#2347c9;--onpen:#fff;--red:#cf3a30;--ok:#1d7a4d;--hi:#ffe566;
+  --line:#b9cbe8;--base:#4f74c9;
   --f:"Andika","Atkinson Hyperlegible",Verdana,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
   /* four-line staff geometry, set by calibrate() */
   --s:15px;--F:29px;--m:6px;--H:57px;--pt:0px;--pb:0px;
 }
 @media (prefers-color-scheme:dark){:root{
-  --bg:#0f1624;--ink:#e6ecf8;--mute:#8e9ab3;--rule:#26324a;--line:#2f4166;--base:#6b8fd0;
-  --ok:#63c196;--bad:#f08d85;--soft:#18223a}}
+  --bg:#0d1424;--card:#151e33;--ink:#e8eefb;--mute:#93a0ba;--rule:#27324d;--soft:#1b2640;
+  --pen:#7c9bff;--onpen:#0d1424;--red:#ff8f85;--ok:#6fd0a1;
+  --line:#2f4166;--base:#6b8fd0}}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--f)}
 main{max-width:720px;margin:0 auto;
-  padding:calc(28px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) calc(72px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left))}
-html{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  padding:calc(18px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))}
 a{color:inherit}
-h2{font:700 22px/1.3 var(--f);margin:0 0 6px}
+h2{font:700 21px/1.3 var(--f);margin:0}
 p{margin:0}
 .note{color:var(--mute);font-size:14px}
-.ver{font-size:12px;margin-top:40px;opacity:.7}
+.ver{font-size:12px;margin-top:36px;opacity:.7}
 body.focus .ver{display:none}
-:focus-visible{outline:2px solid var(--base);outline-offset:2px}
+:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+[hidden]{display:none!important}
 
-/* header + nav */
-.brand{font-weight:700;font-size:20px}
-.brand small{font-weight:400;font-size:13px;color:var(--mute);margin-left:10px}
-nav{display:flex;gap:2px;border-bottom:1px solid var(--rule);margin:12px 0 28px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-nav::-webkit-scrollbar{display:none}
-nav a{padding:10px 12px;color:var(--mute);text-decoration:none;font-size:15px;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
-nav a.on{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
-nav .ct{font-size:12px;margin-left:5px;color:var(--mute);font-weight:400}
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.brand{font:700 20px/1 var(--f);letter-spacing:.01em}
+.acct{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:17px;border:1px solid var(--rule);
+  background:var(--card);color:var(--ink);font-size:13px;text-decoration:none;white-space:nowrap}
+.acct i{width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.acct.on i{background:var(--ok)}.acct.err i{background:var(--red)}.acct.busy i{background:var(--hi);animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+
+/* tab bar: pinned to the bottom on phones, inline on wide screens */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:4;display:flex;background:var(--card);border-top:1px solid var(--rule);
+  padding:0 max(6px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px, env(safe-area-inset-left))}
+nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px 8px;color:var(--mute);text-decoration:none;font-size:11.5px;line-height:1.2;position:relative}
+nav a svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+nav a.on{color:var(--pen);font-weight:700}
+nav .ct{position:absolute;top:4px;left:calc(50% + 7px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--red);color:#fff;font-size:10.5px;font-weight:700;line-height:17px;text-align:center}
+body.focus nav{display:none}
+body.focus .top{display:none}
+body.focus main{padding-top:calc(12px + env(safe-area-inset-top))}
+@media (min-width:760px){
+  nav{position:static;border:0;background:none;padding:0;margin:0 0 22px;border-bottom:1px solid var(--rule)}
+  nav a{flex:0 0 auto;flex-direction:row;gap:7px;padding:10px 16px;font-size:14.5px}
+  nav a svg{width:18px;height:18px}
+  nav a.on{box-shadow:inset 0 -2px 0 var(--pen)}
+  nav .ct{position:static;margin-left:2px}
+  main{padding-bottom:60px}
+}
 
 /* buttons */
-.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 22px;border-radius:8px;
-  border:1.5px solid var(--ink);background:var(--ink);color:var(--bg);font:700 15px/1 var(--f);cursor:pointer;text-decoration:none}
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 24px;border-radius:12px;border:1.5px solid var(--pen);
+  background:var(--pen);color:var(--onpen);font:700 15px/1 var(--f);cursor:pointer;text-decoration:none}
 .btn:active{transform:translateY(1px)}
-.btn.sec{background:transparent;color:var(--ink);border-color:var(--rule)}
-.btn.sec:hover{border-color:var(--ink)}
-.lt.starf{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:34px}
-.lt.starf svg{fill:none;stroke:currentColor;stroke-width:1.7}
-.lt.starf[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.lt.starf[aria-pressed="true"] svg{fill:currentColor}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn.sec{background:var(--card);color:var(--ink);border-color:var(--rule)}
+.btn.sec:hover{border-color:var(--mute)}
 .btn.ghost{background:none;border-color:transparent;color:var(--mute);font-weight:400;padding:0 10px;text-decoration:underline;text-underline-offset:4px}
 .btn.ghost:hover{color:var(--ink)}
-.btn.sm{height:32px;padding:0 10px;font-size:13px}
-.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:22px}
+.btn.sm{height:34px;padding:0 12px;font-size:13px;border-radius:9px}
+.btn.danger{color:var(--red)}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:20px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:18px}
 
-/* segmented control */
-.row{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:18px 0 0}
-.lab{color:var(--mute);font-size:14px;min-width:3.5em}
-.seg{display:inline-flex;border:1.5px solid var(--rule);border-radius:8px;overflow:hidden}
-.seg label{position:relative;display:flex;align-items:center;height:40px;padding:0 16px;font-size:14px;color:var(--mute);cursor:pointer}
-.seg label+label{border-left:1.5px solid var(--rule)}
+/* settings controls */
+.row{display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap;margin:16px 0 0}
+.lab{color:var(--mute);font-size:14px;min-width:4.2em}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--soft);border-radius:12px;padding:3px}
+.seg label{position:relative;display:flex;align-items:center;height:36px;padding:0 14px;border-radius:9px;font-size:14px;color:var(--mute);cursor:pointer;white-space:nowrap}
 .seg input{position:absolute;opacity:0;pointer-events:none}
-.seg label:has(input:checked){background:var(--ink);color:var(--bg);font-weight:700}
-.seg label:has(input:focus-visible){outline:2px solid var(--base);outline-offset:-4px}
+.seg label:has(input:checked){background:var(--card);color:var(--ink);font-weight:700;box-shadow:0 0 0 1px var(--rule)}
+.seg label:has(input:focus-visible){outline:2px solid var(--pen);outline-offset:1px}
+.opts{margin-top:18px;border-top:1px solid var(--rule);padding-top:4px}
+.opts summary{cursor:pointer;color:var(--mute);font-size:14px;padding:10px 0;list-style:none}
+.opts summary::-webkit-details-marker{display:none}
+.opts summary::before{content:"▸ ";}
+.opts[open] summary::before{content:"▾ "}
+.field{display:block;width:100%;height:46px;padding:0 14px;border:1.5px solid var(--rule);border-radius:12px;background:var(--card);color:var(--ink);font:inherit}
+.field:focus{outline:0;border-color:var(--pen)}
+textarea.field{height:auto;min-height:150px;padding:12px 14px;line-height:1.5;font-size:14px;resize:vertical}
+.err{color:var(--red);font-size:14px;margin-top:10px}
 
 /* four-line staff: the writing line for English words */
 .staff{display:block;width:100%;max-width:26rem;height:var(--H);padding:var(--pt) 6px var(--pb);
@@ -89,65 +117,88 @@ input.staff:focus{--line:var(--base)}
 div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 .blank{display:inline-block;width:9em;max-width:60vw;margin:0 .2em;padding:0 6px;border:0;border-bottom:1.5px solid var(--ink);
   background:transparent;color:var(--ink);font:inherit;text-align:center;border-radius:0}
-.blank:focus{outline:0;border-bottom-color:var(--base);box-shadow:0 1.5px 0 var(--base)}
+.blank:focus{outline:0;border-bottom-color:var(--pen);box-shadow:0 1.5px 0 var(--pen)}
 
 /* quiz + practice items */
-.q{display:grid;grid-template-columns:2.6rem 1fr;padding:22px 0;border-top:1px solid var(--rule)}
-.q .no{color:var(--mute);padding-top:2px}
-.q .body{padding-left:14px;border-left:2px solid transparent}
-.q.ok .body{border-left-color:var(--ok)}
-.q.no .body{border-left-color:var(--bad)}
+.q{position:relative;background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:16px 18px 20px;margin-bottom:12px}
+.qn{display:block;color:var(--mute);font-size:13px;margin-bottom:6px}
+.q.is-ok{border-color:var(--ok)}
+.q.is-bad{border-color:var(--red)}
+.q.is-ok::after,.q.is-bad::after{position:absolute;right:16px;top:12px;font:700 22px/1 var(--f)}
+.q.is-ok::after{content:"✓";color:var(--ok)}
+.q.is-bad::after{content:"✗";color:var(--red)}
 .prompt{font-size:18px;line-height:1.7;margin-bottom:12px}
 .prompt .pos{color:var(--mute);font-size:13px;margin-left:6px}
-.prompt .fill{border-bottom:2px solid var(--ink)}
+.prompt .fill{border-bottom:2px solid var(--ok);font-weight:700}
 .hint{margin-top:8px;color:var(--mute);font-size:14px}
 .pat{margin:-4px 0 12px;font-size:17px;letter-spacing:.2em}
 .pat span{margin-left:14px;font-size:13px;letter-spacing:0;color:var(--mute)}
-.verdict{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
-.v{font-size:13px;font-weight:700}
-.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}
-.typed{color:var(--mute);text-decoration:line-through;font-size:16px}
-.onlywrong .q.ok{display:none}
+.verdict{display:flex;gap:6px 14px;align-items:center;flex-wrap:wrap}
+.typed{color:var(--red);text-decoration:line-through;font-size:16px}
+.onlywrong .q.is-ok{display:none}
 /* action bar pinned above the on-screen keyboard (--kb is set from visualViewport) */
 .dock{position:fixed;left:0;right:0;bottom:var(--kb,0px);z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;
-  padding:12px max(20px, calc((100vw - 720px)/2 + 20px)) calc(12px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--ink)}
+  padding:12px max(16px, calc((100vw - 720px)/2 + 16px)) calc(12px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--rule)}
 .dock .btn{min-width:7.5rem}
 .dock-sp{height:88px}
-body.focus .brand,body.focus #nav{display:none}
-body.focus main{padding-top:calc(14px + env(safe-area-inset-top))}
 @media (pointer:coarse){.kbhint{display:none}}
-.sumry{padding-bottom:26px}
+.sumry{padding:4px 0 20px}
 .score{display:flex;align-items:baseline;gap:10px}
-.score .n{font-size:64px;font-weight:700;line-height:1}
+.score .n{font-size:60px;font-weight:700;line-height:1}
 .score .of{color:var(--mute);font-size:18px}
-.pcard{padding:8px 0 4px}
-.pcard .prompt{font-size:22px}
-.pcard .body{padding-left:14px;border-left:2px solid transparent}
-.pcard.ok .body{border-left-color:var(--ok)}.pcard.no .body{border-left-color:var(--bad)}
-.pbar{height:3px;background:var(--rule);border-radius:2px;overflow:hidden}
-.pbar i{display:block;height:100%;background:var(--ink)}
-.phead{display:flex;justify-content:space-between;align-items:center;margin:8px 0 28px}
+.pcard{background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:20px 18px 22px}
+.pcard .prompt{font-size:21px}
+.pcard.is-ok{border-color:var(--ok)}.pcard.is-bad{border-color:var(--red)}
+.pbar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--pen);border-radius:3px;transition:width .25s}
+.phead{display:flex;justify-content:space-between;align-items:center;margin:8px 0 18px}
+
+/* home: mastery map */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:2px 0 6px;font-size:14px}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend b{font-weight:700}
+.sw{width:13px;height:13px;border-radius:3px;display:inline-block}
+.deck{margin-top:22px}
+.dh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+.dh h2{font-size:17px}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(15px,1fr));gap:4px;max-width:520px}
+.cell{aspect-ratio:1;width:100%;padding:0;border-radius:3px;border:1.5px solid var(--line);background:transparent;cursor:pointer}
+.cell.new{border-color:var(--line)}.sw.new{border:1.5px solid var(--line)}
+.cell.learning,.sw.learning{background:var(--line);border-color:var(--line)}
+.cell.known,.sw.known{background:var(--pen);border-color:var(--pen)}
+.cell.weak,.sw.weak{background:var(--red);border-color:var(--red)}
+.cell.sel{outline:2px solid var(--ink);outline-offset:1px}
+.sheet{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:6;max-width:696px;margin:0 auto;
+  background:var(--card);border:1px solid var(--ink);border-radius:16px;padding:14px 16px 16px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+@media (min-width:760px){.sheet{bottom:24px}}
+.sheet .w{font-size:22px}
+.sheet .x{position:absolute;right:6px;top:6px}
+.homego{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
 
 /* word list */
-.tools{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-.find{height:44px;width:100%;max-width:20rem;padding:0 14px;border:1.5px solid var(--rule);border-radius:8px;background:transparent;color:var(--ink);font:inherit}
-.find:focus{outline:0;border-color:var(--base)}
+.tools{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.find{height:44px;width:100%;max-width:22rem;padding:0 14px;border:1.5px solid var(--rule);border-radius:12px;background:var(--card);color:var(--ink);font:inherit}
+.find:focus{outline:0;border-color:var(--pen)}
 .letters{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 6px}
-.lt{min-width:34px;height:34px;padding:0 8px;border-radius:6px;border:1px solid var(--rule);background:none;color:var(--ink);font:400 14px var(--f);cursor:pointer}
-.lt.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:700}
-.entry{display:grid;grid-template-columns:2.6rem 1fr auto;column-gap:8px;padding:16px 0;border-top:1px solid var(--rule)}
+.lt{min-width:34px;height:34px;padding:0 8px;border-radius:8px;border:1px solid var(--rule);background:var(--card);color:var(--ink);font:400 14px var(--f);cursor:pointer}
+.lt.on{background:var(--pen);color:var(--onpen);border-color:var(--pen);font-weight:700}
+.lt.starf{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:34px}
+.lt.starf svg{fill:none;stroke:currentColor;stroke-width:1.7}
+.lt.starf[aria-pressed="true"]{background:var(--hi);color:#14203b;border-color:var(--hi)}
+.lt.starf[aria-pressed="true"] svg{fill:currentColor}
+.entry{display:grid;grid-template-columns:2.4rem 1fr auto;column-gap:8px;padding:15px 0;border-top:1px solid var(--rule)}
 .entry[hidden]{display:none}
-.star{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:0;background:none;border-radius:8px;color:var(--mute);cursor:pointer}
+.star{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:0;background:none;border-radius:10px;color:var(--mute);cursor:pointer}
 .star svg{fill:none;stroke:currentColor;stroke-width:1.6}
 .star:hover{color:var(--ink)}
+.star.on{color:#d6a800}
+.star.on svg{fill:var(--hi);stroke:#c69a00}
 .say{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;background:none;border-radius:8px;color:var(--mute);cursor:pointer;vertical-align:middle;margin-left:2px}
 .say svg{fill:currentColor;stroke:currentColor;stroke-width:1.4}
 .say svg path+path{fill:none;stroke-linecap:round}
 .say:hover{color:var(--ink)}
 .nosay .say{display:none}
-.star.on{color:var(--ink)}
-.star.on svg{fill:currentColor}
-.entry .no{color:var(--mute);font-size:14px;padding-top:4px}
+.entry .no{color:var(--mute);font-size:13px;padding-top:5px}
 .w{font-weight:700;font-size:21px;line-height:1.4}
 .pos{color:var(--mute);font-size:13px;font-weight:400;margin-left:8px}
 .d{margin:2px 0 4px}
@@ -156,10 +207,10 @@ body.focus main{padding-top:calc(14px + env(safe-area-inset-top))}
 .m-word .w:not(.rev){filter:blur(7px);cursor:pointer;user-select:none}
 .m-def .d:not(.rev),.m-def .s:not(.rev){filter:blur(6px);cursor:pointer;user-select:none}
 .meta{color:var(--mute);font-size:13px;margin-top:4px}
-.empty{padding:28px 0;color:var(--mute)}
+.empty{padding:26px 0;color:var(--mute)}
 .empty .btn{margin-top:16px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
-.chip{padding:3px 10px;border:1px solid var(--rule);border-radius:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{padding:3px 10px;border:1px solid var(--rule);border-radius:8px;background:var(--card)}
 
 /* history */
 .h{border-top:1px solid var(--rule)}
@@ -168,23 +219,30 @@ body.focus main{padding-top:calc(14px + env(safe-area-inset-top))}
 .h .sc{font-weight:700;font-size:18px}
 .h .wl{padding:0 0 16px 7.2em}
 .h .wl div{display:flex;gap:14px;align-items:baseline}
+
+/* account */
+.steps{margin:8px 0 0;padding-left:1.3em;font-size:14px;color:var(--mute)}
+.steps li{margin:3px 0}
+.steps b{color:var(--ink)}
+form .field+.field{margin-top:10px}
 @media (max-width:520px){
   .prompt{font-size:17px}
   .pcard .prompt{font-size:20px}
   .h .wl{padding-left:0}
   .h summary{grid-template-columns:6em 1fr auto}
-  .score .n{font-size:52px}
+  .score .n{font-size:50px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
 <main>
-  <div class="brand">Spelling Bee<small>世新 250 字</small></div>
+  <div class="top"><div class="brand">Spelling Bee</div><a class="acct" id="acct" href="#me"></a></div>
   <nav id="nav"></nav>
   <div id="app"></div>
   <p class="note ver">版本 <span id="ver"></span></p>
 </main>
+<div class="sheet" id="sheet" hidden></div>
 
 <script>
 const RAW = `abacus|n|a device used for counting and calculating by sliding small balls or beads along rods or in grooves.|The grocer used an abacus instead of a modern cash register.
@@ -437,12 +495,262 @@ yeast|n|a type of fungus that is used in making alcoholic drinks such as beer an
 zigzaggedness|n|used to describe something that has short sharp turns or angles.|Driving up the mountain, we became scared of the dangerous zigzaggedness of the road.
 zoology|n|the branch of science that involves the study of animals and animal behavior.|It is surprising that Gretchen, an animal lover, dreads her studies in zoology.
 zucchini|n|a dark green vegetable that is long and smooth and that has soft skin which can be eaten.|Tim picked a large zucchini from his garden so that he could slice it and grill it for dinner.`;
+const W01 = `accommodate|v|to provide space for; to adjust to someone's needs.|The small hotel can accommodate sixty guests.
+accomplish|v|to succeed in doing or finishing something.|With a little teamwork, we can accomplish the whole project by Friday.
+acquiesce|v|to accept or agree to something reluctantly, without putting up a fight.|After an hour of begging, Dad decided to acquiesce and let the puppy sleep on the bed.
+agoraphobia|n|a fear of open or crowded public places.|Agoraphobia kept her from walking through the busy market.
+ambidextrous|adj|able to use the left hand and the right hand equally well.|The ambidextrous pitcher could throw with either arm.
+ambitious|adj|having a strong desire to succeed or achieve something big.|The ambitious intern asked to lead the next project.
+ameliorate|v|to make a bad or painful situation better.|The city planted trees along the highway to ameliorate the heat and noise.
+anachronism|n|something placed in the wrong time period, or something that feels badly out of date.|A wristwatch on a Roman soldier in the movie was an obvious anachronism.
+anemone|n|a small plant with cup-shaped flowers; also a sea creature with soft, waving tentacles.|A clownfish hid among the tentacles of the anemone.
+angst|n|a deep, restless feeling of anxiety about life.|The teenager's poems were full of angst.
+antithesis|n|the exact opposite of something.|Her quiet, tidy desk was the antithesis of her brother's messy room.
+apocalyptic|adj|describing the complete destruction of the world.|The film's apocalyptic scenes showed cities buried under ash.
+apparent|adj|easy to see or understand; obvious.|It was apparent from her smile that the interview had gone well.
+approximately|adv|close to a number or amount, but not exactly.|The hike takes approximately three hours each way.
+arachnophobia|n|an intense fear of spiders.|Her arachnophobia made her scream at the tiny spider in the sink.
+asphyxiate|v|to cut off someone's air supply so that they cannot breathe.|The thick smoke threatened to asphyxiate everyone in the room.
+bargain|n|something bought for much less than its usual price.|The coat was a bargain at half the normal price.
+bellicose|adj|eager to fight; aggressive.|The bellicose neighbor argued with everyone on the street.
+bellwether|n|something that shows which way a trend is heading.|The state is a bellwether for national elections.
+blitzkrieg|n|a sudden, fast, overwhelming military attack.|The army's blitzkrieg crushed the defenders in a matter of days.
+boundary|n|a line that marks the edge of an area.|A low stone wall marks the boundary between the two farms.
+bourgeois|adj|belonging to the comfortable middle class, often with a concern for money and appearances.|The novel mocks a bourgeois family obsessed with owning the biggest house on the street.
+bourgeoisie|n|the middle class of a society, especially as seen by its critics.|The revolutionaries blamed the bourgeoisie for the workers' poverty.
+bruschetta|n|grilled bread rubbed with garlic and topped with tomato and olive oil, an Italian appetizer.|We shared a plate of bruschetta before the pasta arrived.
+bureaucracy|n|a system of management with many rules and officials; red tape.|Getting a permit meant wading through endless layers of bureaucracy.
+cacophony|n|a harsh, jarring mixture of loud sounds.|A cacophony of car horns filled the intersection during rush hour.
+camaraderie|n|friendly trust and companionship among people who spend a lot of time together.|The camaraderie among the rescue crew kept their spirits up through the long night.
+cappuccino|n|an Italian coffee drink topped with thick, frothy milk.|He sprinkled cocoa over his cappuccino.
+cartilage|n|the tough, bendy tissue that shapes the ear and cushions the joints.|He tore the cartilage in his knee during the match.
+cellophane|n|a thin, clear, glossy wrapping material.|She wrapped the basket of fruit in cellophane and tied a ribbon.
+cemetery|n|a place where dead people are buried.|They placed flowers on the grave in the quiet cemetery.
+ceremony|n|a formal event held to mark something important.|The graduation ceremony began with a long march of students.
+chameleon|n|a lizard that changes its skin color to match its surroundings.|The chameleon turned green and vanished against the leaves.
+charlatan|n|a person who pretends to have skill or knowledge that they do not have.|The so-called doctor was a charlatan selling colored water.
+chauffeur|n|a person employed to drive someone else's car.|The chauffeur opened the door of the limousine for the mayor.
+chiaroscuro|n|a painting technique that uses strong contrast between light and dark.|Rembrandt's chiaroscuro makes the faces glow against deep shadow.
+chimera|n|a monster in Greek myth made of parts of different animals; also an impossible dream.|The statue showed a chimera with a lion's head and a serpent's tail.
+chrysanthemum|n|a garden flower with a thick, rounded head of many petals.|A single yellow chrysanthemum stood in the vase.
+chutzpah|n|bold nerve; shameless confidence.|It took chutzpah to ask the boss for a raise on his first day.
+circumstance|n|a condition or fact that affects a situation.|Under no circumstance should you open the door for a stranger.
+clandestine|adj|done in secret, especially because it is not allowed.|The spies held a clandestine meeting in an empty parking garage.
+claustrophobia|n|a fear of small, enclosed spaces.|Claustrophobia made him take the stairs instead of the elevator.
+colloquial|adj|used in everyday, informal speech.|Gonna is a colloquial form of going to.
+connoisseur|n|an expert judge of fine things such as food, wine, or art.|As a cheese connoisseur, she could name the farm from a single bite.
+conscience|n|the inner sense of what is right and wrong.|His conscience bothered him after he told the lie.
+conscientious|adj|careful and thorough, and eager to do a task properly.|The conscientious nurse double-checked every dose before handing it over.
+conundrum|n|a confusing problem or riddle that is hard to solve.|Which road to take was a real conundrum with the map blown away.
+courageous|adj|brave when facing danger or difficulty.|The courageous firefighter ran back into the burning house.
+criticize|v|to point out the faults of someone or something.|Teachers should criticize the work, not the student.
+curmudgeon|n|a bad-tempered, stubborn person, usually an older one.|The old curmudgeon yelled whenever a ball landed in his garden.
+dachshund|n|a small dog with a long body and very short legs.|The dachshund squeezed under the sofa to chase a ball.
+debris|n|scattered broken pieces left after something is destroyed.|After the storm, debris covered the road.
+definitely|adv|without any doubt; certainly.|I will definitely be there before the movie starts.
+denouement|n|the final part of a story, where everything is explained and settled.|The mystery's denouement revealed that the butler had done it.
+desperate|adj|willing to try anything because the situation is so bad.|The desperate hikers waved at the passing plane.
+diaphanous|adj|light, delicate, and see-through.|She wore a diaphanous scarf that floated in the breeze.
+diarrhea|n|a stomach illness in which the body passes loose, watery waste too often.|Drinking dirty water gave the hikers diarrhea.
+dilemma|n|a hard choice between two options that are both unpleasant.|She faced a dilemma: tell the truth or protect her friend.
+dilettante|n|a person who dabbles in a subject for pleasure without real skill or commitment.|The dilettante took up painting, then piano, then pottery, and quit each within a month.
+dirigible|n|a large, steerable, balloon-like aircraft; an airship.|A silver dirigible floated slowly over the stadium.
+ebullient|adj|bubbling over with cheerful energy.|The ebullient coach hugged every player after the win.
+echelon|n|a level or rank in an organization.|Only people in the upper echelon of the company had a private office.
+effervescent|adj|bubbling; also lively and full of enthusiasm.|The effervescent soda fizzed over the rim of the glass.
+efficient|adj|working well without wasting time or effort.|The new dishwasher is quiet and very efficient.
+ennui|n|a feeling of boredom and weary dissatisfaction.|A long, rainy Sunday filled him with ennui.
+enormous|adj|extremely large.|An enormous wave rolled toward the surfers.
+entrepreneur|n|a person who starts a business and takes financial risks to run it.|The young entrepreneur sold handmade candles from a tiny booth.
+ephemeral|adj|lasting only a very short time.|Snowflakes are ephemeral, melting the moment they touch warm skin.
+epiphany|n|a sudden, striking realization.|In the shower she had an epiphany about how to fix the code.
+epitome|n|a perfect example of a quality or type.|With her patience and kindness, Ms. Lin was the epitome of a good teacher.
+equanimity|n|calmness of mind, especially in a difficult situation.|He accepted the bad news with remarkable equanimity.
+esophagus|n|the tube that carries food from the throat to the stomach.|The pill got stuck in her esophagus and made her cough.
+euphemism|n|a mild word used in place of one that sounds harsh.|Passed away is a common euphemism for died.
+exacerbate|v|to make a problem or an injury worse.|Scratching the rash will only exacerbate the itching.
+exaggerate|v|to describe something as bigger or better than it really is.|Fishermen often exaggerate the size of the one that got away.
+facetious|adj|joking at a moment when seriousness is expected.|His facetious reply to the judge's question did not make her laugh.
+fascinate|v|to hold someone's attention with great interest.|Space has always seemed to fascinate young children.
+fastidious|adj|very careful about details and hard to please, especially about cleanliness.|The fastidious chef wiped the counter after every single order.
+fiasco|n|a complete and embarrassing failure.|The school play turned into a fiasco when the set fell over.
+finesse|n|skillful, delicate handling of a tricky situation.|She handled the angry customer with finesse.
+fortunate|adj|having good luck.|We were fortunate to find a table at the crowded cafe.
+fuchsia|n|a vivid purplish-pink color; also a plant with drooping flowers of that color.|She painted her bedroom door a bold fuchsia.
+fuselage|n|the main body of an aircraft.|Passengers sat in rows along the length of the fuselage.
+gauche|adj|socially awkward or tactless.|It was gauche to start eating before the host sat down.
+gazpacho|n|a cold Spanish soup made from raw tomatoes and other vegetables.|On a hot day, a bowl of gazpacho tasted perfect.
+genuine|adj|real and not fake; sincere.|The jacket is made of genuine leather.
+gesticulate|v|to make lively hand and arm movements while speaking.|He began to gesticulate wildly as he explained the argument.
+ghoulish|adj|taking morbid pleasure in death or horror.|The haunted house's ghoulish decorations made the children shriek.
+gnocchi|n|small Italian dumplings made from potato or flour.|She served the gnocchi with a sage butter sauce.
+gregarious|adj|fond of company; sociable.|The gregarious new neighbor introduced himself to every family on the block within a week.
+guillotine|n|a machine with a heavy falling blade, used for executions in France; also a paper cutter.|The guillotine was used during the French Revolution.
+hallucinate|v|to see or hear things that are not really there.|Lost in the desert, he began to hallucinate a lake.
+harangue|v|to lecture someone at length in a loud, forceful way.|The coach would harangue the team for twenty minutes after every loss.
+harass|v|to bother or pressure someone again and again.|Reporters continued to harass the family outside their home.
+hemorrhage|n|a heavy flow of blood from a damaged blood vessel.|The doctor worked quickly to stop the hemorrhage.
+hesitate|v|to pause before doing something because you feel unsure.|Don't hesitate to ask if you need help.
+hieroglyphics|n|the picture writing of ancient Egypt.|The tomb wall was covered in colorful hieroglyphics.
+hygiene|n|habits and practices that keep you clean and healthy.|Washing your hands is basic hygiene.
+hypochondriac|n|a person who constantly worries about being seriously ill.|The hypochondriac rushed to the clinic over a tiny mosquito bite.
+hypotenuse|n|the longest side of a right triangle.|The hypotenuse is always opposite the right angle.
+idiosyncrasy|n|a personal habit or quirk that is peculiar to one person.|Wearing mismatched socks was one odd idiosyncrasy he refused to give up.
+idyllic|adj|peaceful and charming, like a perfect picture of country life.|They spent an idyllic week in a cottage by the lake.
+impeccable|adj|without any fault or mistake.|Her impeccable manners impressed everyone at the formal dinner.
+incognito|adv|with one's identity hidden.|The prince traveled incognito, wearing a plain cap and glasses.
+indefatigable|adj|never getting tired.|The indefatigable marathoner kept a steady pace through the final mile.
+indispensable|adj|so important that you cannot do without it.|A good map is indispensable on a mountain trek.
+ineffable|adj|too great or beautiful to be put into words.|The ineffable beauty of the sunrise left them speechless.
+inexorable|adj|impossible to stop or change.|The inexorable rise of the tide soon covered the sandcastle.
+insidious|adj|harmful in a gradual, hidden way.|The insidious smell of gas had spread through the house before anyone noticed.
+insouciant|adj|casually carefree and unconcerned.|She strolled into the exam with an insouciant smile.
+irascible|adj|easily made angry.|The irascible landlord shouted whenever the rent was a day late.
+iridescent|adj|shining with shifting, rainbow-like colors.|The beetle's iridescent wings flashed green and blue.
+irreparable|adj|too badly damaged to be fixed or made right.|The flood did irreparable harm to the old library.
+isosceles|adj|having two sides of equal length, said of a triangle.|She drew an isosceles triangle with two matching sides.
+isthmus|n|a narrow strip of land that joins two larger pieces of land.|The city sits on a narrow isthmus between two seas.
+jewelry|n|decorations such as rings and necklaces that people wear.|She kept her jewelry in a small wooden box.
+judgment|n|the ability to make sensible decisions; an opinion formed after thought.|Good judgment tells you not to swim during a thunderstorm.
+juggernaut|n|a huge, unstoppable force that crushes whatever is in its way.|The undefeated team rolled on like a juggernaut.
+jurisprudence|n|the study or philosophy of law.|She spent years studying jurisprudence before becoming a judge.
+juxtaposition|n|the placing of two very different things side by side to show the contrast.|The photo's juxtaposition of a golden palace and a crumbling hut shocked viewers.
+kaleidoscope|n|a tube that shows changing colored patterns when you turn it; any constantly shifting scene.|She turned the kaleidoscope and watched the bits of glass form a new flower.
+karaoke|n|entertainment in which people sing along to recorded music.|They sang until midnight at the karaoke bar.
+kitsch|n|tacky, overly sentimental or showy art and decoration.|The souvenir shop was full of glittering kitsch.
+labyrinth|n|a complicated network of paths in which it is easy to get lost; a maze.|The tourists got lost in the labyrinth of narrow alleys in the old town.
+lackadaisical|adj|lacking energy, effort, or care.|His lackadaisical attempt to mow the lawn left half of it uncut.
+larynx|n|the voice box in the throat that holds the vocal cords.|A sore larynx left the singer unable to perform.
+leisure|n|free time when you can relax and do what you enjoy.|On weekends he reads for leisure.
+liaison|n|a person who passes information between two groups.|The nurse acted as a liaison between the family and the doctors.
+lieutenant|n|a military officer ranking below a captain.|The lieutenant led his squad up the hill.
+lightning|n|a flash of bright light in the sky during a storm.|Lightning lit up the whole valley for a second.
+liquefy|v|to turn into a liquid.|The summer heat began to liquefy the chocolate bars on the shelf.
+loquacious|adj|talking a great deal.|The loquacious taxi driver told us his life story before we reached the airport.
+lugubrious|adj|mournful and gloomy, often in an exaggerated way.|The lugubrious clown wept real tears at the birthday party.
+luxury|n|great comfort and expensive surroundings; something pleasant but not necessary.|A hot bath after a long hike felt like pure luxury.
+macchiato|n|espresso with a small spot of milk on top.|She ordered a macchiato to wake herself up.
+magnanimous|adj|generous and forgiving, especially toward a rival.|The magnanimous winner praised the loser's effort.
+maintenance|n|the work of keeping something in good condition.|The elevator is closed for maintenance.
+malevolent|adj|wishing harm on others.|The witch cast a malevolent glare at the villagers.
+marvelous|adj|extremely good or wonderful.|The chef served a marvelous five-course dinner.
+mausoleum|n|a large building that holds tombs.|The emperor was buried in a marble mausoleum.
+mellifluous|adj|sweet and smooth to hear.|The singer's mellifluous voice calmed the restless crowd.
+mercurial|adj|changing moods quickly and unpredictably.|The mercurial artist was cheerful at breakfast and furious by lunch.
+metamorphosis|n|a complete change of form, such as a caterpillar becoming a butterfly.|The frog's metamorphosis from tadpole took only a few weeks.
+meticulous|adj|showing great attention to every detail.|The meticulous clockmaker checked every tiny gear.
+millennium|n|a period of one thousand years.|The town celebrated the start of a new millennium with fireworks.
+minuscule|adj|extremely small.|The writing on the medicine bottle was minuscule.
+misanthrope|n|a person who dislikes and avoids other people.|The misanthrope lived alone on a hill and refused all visitors.
+miscellaneous|adj|made up of many different kinds; assorted.|The drawer was full of miscellaneous items: batteries, keys, and string.
+mischievous|adj|playfully naughty.|The mischievous puppy hid every sock in the house.
+mnemonic|n|a trick or short phrase that helps you remember something.|She used a silly mnemonic to remember the order of the planets.
+mortgage|n|a loan taken out to buy a house.|They paid off their mortgage after twenty years.
+myriad|n|an extremely large number of things.|A myriad of stars glittered over the desert.
+nefarious|adj|wicked or criminal.|The villain unveiled his nefarious plan to steal the moon.
+neighborhood|n|a small area of a town where people live near each other.|Everyone in the neighborhood came to the street party.
+nepotism|n|favoritism shown to relatives, especially in giving them jobs.|Giving his cousin the job was pure nepotism.
+nonchalant|adj|calm and unconcerned, as if nothing matters.|He gave a nonchalant shrug when he was handed the trophy.
+nuance|n|a very small difference in meaning, tone, or color.|The translator captured every nuance of the poem.
+obfuscate|v|to make something unclear or hard to understand on purpose.|The politician tried to obfuscate the issue with long, vague answers.
+obsequious|adj|too eager to please or obey someone important.|The obsequious waiter bowed every time the critic lifted a fork.
+obstacle|n|something that blocks the way or makes progress difficult.|The runner jumped over each obstacle on the track.
+occurrence|n|something that happens; an event.|Snow in the desert is a rare occurrence.
+onomatopoeia|n|a word that imitates the sound it names, such as buzz.|Sizzle is a perfect example of onomatopoeia.
+ophthalmologist|n|a doctor who specializes in eye diseases and eye care.|The ophthalmologist tested her vision with a chart of letters.
+opportunity|n|a chance to do something good.|The scholarship gave her the opportunity to study abroad.
+origami|n|the Japanese art of folding paper into shapes.|He folded a crane out of a single sheet of origami paper.
+ostentatious|adj|showy in a way meant to impress others.|His ostentatious gold watch flashed in every photo.
+panacea|n|a cure-all remedy for every problem.|No single diet is a panacea for every health problem.
+pandemonium|n|wild, noisy disorder.|Pandemonium broke out when the lights went off during the concert.
+paparazzi|n|photographers who chase celebrities to get pictures of them.|The paparazzi swarmed the actress as she left the restaurant.
+paradigm|n|a typical model or pattern of how something works.|The invention of the telescope forced scientists to abandon the old paradigm of an Earth-centered universe.
+parallelogram|n|a four-sided shape whose opposite sides are parallel.|The tilted rectangle looked like a parallelogram.
+paraphernalia|n|a collection of small items needed for a particular activity.|The fisherman's paraphernalia filled the entire garage.
+perfunctory|adj|done quickly as a duty, with little interest or care.|He gave the dishes a perfunctory rinse and left the grease behind.
+pernicious|adj|causing serious harm in a gradual, subtle way.|Rumors can be pernicious, slowly poisoning a friendship.
+perspicacious|adj|quick to notice and understand things; sharp-minded.|The perspicacious detective spotted the forged signature at once.
+persuade|v|to convince someone to do something by giving good reasons.|He tried to persuade his parents to let him adopt a dog.
+pharaoh|n|a ruler of ancient Egypt.|The pharaoh ordered a massive tomb to be built beside the Nile.
+pharmaceutical|adj|relating to the making and selling of medicines.|The pharmaceutical company announced a new cold remedy.
+phlegmatic|adj|calm and not easily excited.|The phlegmatic pilot kept his voice steady during the storm.
+photosynthesis|n|the process by which plants turn sunlight, water, and air into food.|Photosynthesis happens in the green parts of a leaf.
+physician|n|a doctor of medicine.|The physician examined the sprained wrist.
+pneumatic|adj|filled with or worked by compressed air.|The mechanic used a pneumatic drill to loosen the bolts.
+pneumonia|n|a serious lung infection that makes breathing painful.|Grandpa spent a week in the hospital with pneumonia.
+poltergeist|n|a mischievous ghost that makes noise and moves objects.|The family blamed a poltergeist for the flying plates.
+prejudice|n|an unfair opinion formed about someone without knowing them.|The speech was about overcoming prejudice and treating everyone equally.
+pronunciation|n|the way a word is spoken.|Her pronunciation of French words is excellent.
+prosciutto|n|thinly sliced, salt-cured Italian ham.|The sandwich was layered with prosciutto and fresh mozzarella.
+pseudonym|n|a made-up name used by a writer instead of a real one.|The author published her mystery novels under a pseudonym.
+psychiatrist|n|a doctor who treats mental illness.|The psychiatrist listened carefully before suggesting a treatment.
+pterodactyl|n|an extinct flying reptile with leathery wings.|The museum hung a giant pterodactyl skeleton from the ceiling.
+quagmire|n|soft, muddy ground that traps you; also a difficult situation that is hard to escape.|The truck sank into the quagmire after the rain.
+quarantine|n|a period of isolation meant to stop disease from spreading.|The ship was held in quarantine for two weeks.
+questionnaire|n|a written set of questions used to gather information.|Each student filled out a short questionnaire.
+quintessential|adj|being the most perfect example of its type.|The corner diner is the quintessential small-town restaurant.
+quixotic|adj|full of idealistic dreams that are not practical.|His quixotic plan to cure every disease with a single herb never left the drawing board.
+raconteur|n|a person who tells stories skillfully and entertainingly.|Grandpa was a gifted raconteur who held the whole table spellbound.
+recalcitrant|adj|stubbornly refusing to obey rules or orders.|The recalcitrant mule would not move another step.
+reconnaissance|n|a mission to gather information about an area or an enemy.|The scouts flew a reconnaissance flight over the valley.
+reluctant|adj|unwilling and hesitant.|He was reluctant to leave the warm tent.
+reminiscent|adj|bringing back memories of something else.|The smell of pine was reminiscent of childhood Christmas mornings.
+renaissance|n|a revival of interest and activity; also the period of European art and learning after the Middle Ages.|The town is enjoying a renaissance of live music.
+rendezvous|n|a meeting at an agreed time and place.|The spies planned a midnight rendezvous under the bridge.
+rescind|v|to cancel an order, law, or decision officially.|The council voted to rescind the ban on skateboards.
+responsibility|n|a duty to take care of something or someone.|Feeding the cat is your responsibility this week.
+rhapsody|n|an enthusiastic, emotional piece of music or speech.|The pianist played a stirring rhapsody that moved the audience to tears.
+rhetoric|n|the art of speaking or writing persuasively; showy language with little substance.|The senator's rhetoric stirred the crowd, but his speech had few facts.
+rhinoceros|n|a large, thick-skinned animal with one or two horns on its nose.|A rhinoceros charged at the jeep, kicking up dust.
+rhododendron|n|a shrub with large clusters of showy flowers.|Pink rhododendron bushes lined the garden path.
+rhythmic|adj|having a regular, repeated pattern of beats or movement.|The rhythmic drumming made everyone start to sway.
+sabotage|v|to damage or ruin something on purpose.|Someone tried to sabotage the experiment by switching the labels.
+sacrilegious|adj|showing disrespect toward something holy.|Painting graffiti on the ancient temple wall was a sacrilegious act.
+sacrosanct|adj|so important or holy that it must not be harmed or criticized.|His Sunday afternoon nap was sacrosanct.
+sanguine|adj|cheerfully hopeful, especially in a bad situation.|Despite the storm clouds, she stayed sanguine about the picnic.
+sarcophagus|n|a stone coffin, often decorated, from ancient times.|Archaeologists opened the sealed sarcophagus and found a golden mask.
+schadenfreude|n|pleasure felt at someone else's bad luck.|A flicker of schadenfreude crossed his face when the bully tripped.
+schmooze|v|to chat in a friendly way, especially to win someone over.|He spent the party trying to schmooze the investors.
+scintilla|n|a tiny trace or spark.|He showed not a scintilla of regret for breaking the vase.
+serendipity|n|the happy accident of finding something good without looking for it.|By pure serendipity, she met her future business partner at the bus stop.
+sergeant|n|a military or police officer ranking above a corporal.|The sergeant barked orders at the new recruits.
+silhouette|n|the dark outline of a person or object against a lighter background.|Her silhouette appeared in the window against the evening light.
+souvenir|n|an object kept to remind you of a place or event.|She bought a tiny Eiffel Tower as a souvenir.
+sovereignty|n|the supreme power of a state to govern itself.|The island nation fought hard to defend its sovereignty.
+sphygmomanometer|n|an instrument for measuring blood pressure.|The nurse wrapped the cuff of the sphygmomanometer around his arm.
+spontaneity|n|the quality of acting naturally on impulse, without planning.|The road trip's charm lay in its spontaneity.
+supercilious|adj|looking down on others with proud disdain.|The supercilious clerk raised an eyebrow at our simple order.
+supersede|v|to take the place of something older.|Digital tickets have begun to supersede paper ones.
+surreptitious|adj|done secretly and quickly to avoid being noticed.|He took a surreptitious glance at his friend's test paper.
+surveillance|n|close watching of a person or place, especially by police.|Cameras provided constant surveillance of the empty parking lot.
+sycophant|n|a person who flatters the powerful to win favor.|Every foolish idea the king had was praised by the sycophant standing beside his throne.
+symbiosis|n|a close partnership between two different living things that benefits both.|Clownfish and sea anemones live in symbiosis.
+synonymous|adj|having the same or nearly the same meaning.|The words huge and enormous are nearly synonymous.
+tantamount|adj|equal in effect to something serious.|Staying silent while she was insulted was tantamount to agreeing with the insult.
+taxidermy|n|the art of stuffing dead animals so that they look alive.|The museum's taxidermy collection included a full-grown bear.
+tenacious|adj|holding on firmly; refusing to give up.|The tenacious detective followed the lead for ten years.
+thorough|adj|complete and careful, leaving nothing out.|The inspector gave the building a thorough check.
+tremendous|adj|very great in amount or strength.|A tremendous roar came from the stadium.
+triskaidekaphobia|n|an irrational fear of the number thirteen.|Triskaidekaphobia explains why many hotels skip the thirteenth floor.
+tsunami|n|a giant ocean wave caused by an earthquake or volcano.|The tsunami swept across the harbor and flooded the town.
+tycoon|n|a wealthy and powerful businessperson.|The shipping tycoon owned a fleet of forty vessels.
+ukulele|n|a small, four-stringed, guitar-like instrument from Hawaii.|He strummed a cheerful tune on his ukulele.
+vehicle|n|a machine such as a car or truck used to carry people or goods.|The vehicle stalled in the middle of the bridge.
+vermilion|n|a bright orange-red color.|The temple gates were painted a brilliant vermilion.
+vicissitude|n|a sudden change of luck or circumstance, usually an unwelcome one.|The old sailor had survived every vicissitude of life at sea.
+vociferous|adj|loud and forceful in expressing an opinion.|The vociferous crowd demanded that the mayor resign.
+wanderlust|n|a strong desire to travel.|Wanderlust drove her to quit her job and buy a plane ticket.
+wherewithal|n|the money or means needed to do something.|She lacked the wherewithal to buy a new car.
+whimsical|adj|playfully odd or fanciful.|The whimsical garden was full of tiny doors and painted mushrooms.
+xylophone|n|a musical instrument made of wooden bars struck with small mallets.|The child tapped out a tune on her rainbow-colored xylophone.
+zeitgeist|n|the general spirit and mood of a particular period of history.|The song captured the zeitgeist of the 1960s.
+zephyr|n|a soft, gentle breeze.|A warm zephyr rustled the curtains.
+`;
 
-const WORDS = RAW.trim().split('\n').map((l, i) => { const [w, p, d, s] = l.split('|'); return { w, p, d, s, n: i + 1 }; });
-const WMAP = Object.fromEntries(WORDS.map(x => [x.w, x]));
-const ALT = { realize: ['realise'] };
-const N = 25;
 const MODES = { mix: '混合', def: '看定義', cloze: '例句填空' };
+const ALT = { realize: ['realise'], diarrhea: ['diarrhoea'], hemorrhage: ['haemorrhage'], esophagus: ['oesophagus'],
+  judgment: ['judgement'], jewelry: ['jewellery'], marvelous: ['marvellous'], neighborhood: ['neighbourhood'] };
+const N = 25;
 /* Gboard ignores autocorrect="off"; an email-type field makes it stop correcting and hide suggestions */
 const ANDROID = /Android/i.test(navigator.userAgent);
 const ATTR = 'autocomplete="nope" autocapitalize="none" autocorrect="off" spellcheck="false" data-gramm="false"'
@@ -461,26 +769,71 @@ function sample(arr, k) {
 }
 
 /* ---------- storage: browser-local, falls back to memory ---------- */
+let onSave = () => {};
+const SYNCED = new Set(['weak', 'hist', 'prog', 'rm']);
 const store = (() => {
   let ok = true; const mem = {};
   try { localStorage.setItem('_t', '1'); localStorage.removeItem('_t'); } catch (e) { ok = false; }
   return {
     ok,
     get(k, d) { try { if (ok) { const v = localStorage.getItem(k); if (v != null) return JSON.parse(v); } } catch (e) {} return k in mem ? mem[k] : d; },
-    set(k, v) { mem[k] = v; try { if (ok) localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    set(k, v, quiet) { mem[k] = v; try { if (ok) localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} if (!quiet && SYNCED.has(k)) onSave(); }
   };
 })();
-const prefs = Object.assign({ mode: 'mix', src: 'all', lm: 'none', sd: 'off', pt: 'auto' }, store.get('prefs', {}));
+const prefs = Object.assign({ mode: 'mix', deck: 'all', filter: 'all', size: '25', lm: 'none', sd: 'off', pt: 'auto', ld: 'base' }, store.get('prefs', {}));
+if (prefs.src === 'weak') { prefs.filter = 'weak'; delete prefs.src; }
 const savePrefs = () => store.set('prefs', prefs);
 const getWeak = () => store.get('weak', {});
+const getProg = () => store.get('prog', {});
 const getHist = () => store.get('hist', []);
+const getRm = () => store.get('rm', {});
+
+/* ---------- decks ---------- */
+function parseDeck(text, id, seen) {
+  const out = [];
+  for (const line of String(text || '').split('\n')) {
+    const f = line.split(/\||\t/).map(x => x.trim());
+    const [w, p, d, s] = f;
+    if (!w || !d || !/^[A-Za-z][A-Za-z'-]*$/.test(w) || seen.has(w.toLowerCase())) continue;
+    seen.add(w.toLowerCase());
+    out.push({ w, p: p || '', d, s: s || '', n: out.length + 1, deck: id });
+  }
+  return out;
+}
+const DECKS = [
+  { id: 'base', name: '世新 250 字', short: '世新 250' },
+  { id: 'w01', name: '加強・第 1 週', short: '第 1 週' },
+  { id: 'mine', name: '新單字表（只存在這台裝置）', short: '新單字表', local: true }
+];
+let ALL = [], WMAP = {};
+function buildWords() {
+  const seen = new Set();
+  const src = { base: RAW, w01: W01, mine: store.get('mine', '') };
+  DECKS.forEach(d => { d.words = parseDeck(src[d.id], d.id, seen); });
+  ALL = DECKS.flatMap(d => d.words);
+  WMAP = Object.fromEntries(ALL.map(x => [x.w, x]));
+}
+buildWords();
+const deckName = id => (DECKS.find(d => d.id === id) || {}).short || '全部';
+const ownedDecks = () => DECKS.filter(d => d.words.length);
+
+/* ---------- progress ---------- */
 function recordResult(word, ok, first) {
-  const wk = getWeak(), e = wk[word];
+  const wk = getWeak(), e = wk[word], pg = getProg(), p = pg[word] || { ok: 0, miss: 0, t: 0 };
+  if (ok) p.ok++; else p.miss++;
+  p.t = Date.now(); pg[word] = p; store.set('prog', pg);
   if (!ok) wk[word] = { miss: (e ? e.miss : 0) + 1, last: Date.now(), streak: 0 };
-  else if (e && first) { e.streak = (e.streak || 0) + 1; if (e.streak >= 2) delete wk[word]; }
+  else if (e && first) { e.streak = (e.streak || 0) + 1; if (e.streak >= 2) dropWeak(wk, word); }
   store.set('weak', wk); renderNav();
 }
+function dropWeak(wk, w) { delete wk[w]; const rm = getRm(); rm[w] = Date.now(); store.set('rm', rm); }
 function logHist(rec) { const h = getHist(); h.unshift(rec); store.set('hist', h.slice(0, 200)); }
+const stateOf = (w, wk, pg) => wk[w] ? 'weak' : !pg[w] ? 'new' : pg[w].ok >= 2 ? 'known' : 'learning';
+function pool(deck, filter) {
+  const wk = getWeak(), pg = getProg();
+  return ALL.filter(x => (deck === 'all' || x.deck === deck) &&
+    (filter === 'all' || (filter === 'weak' ? !!wk[x.w] : !pg[x.w] && !wk[x.w])));
+}
 const storeNote = () => store.ok ? '' : '<p class="note" style="margin-top:20px">此環境無法長期儲存，錯字清單與記錄只在這次開啟期間保留。</p>';
 
 /* ---------- helpers ---------- */
@@ -490,9 +843,11 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const app = $('#app');
 const pad = n => String(n).padStart(2, '0');
 const fmt = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const hm = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const seg = (name, opts, val) => `<div class="seg" role="radiogroup">${Object.entries(opts).map(([k, l]) =>
   `<label><input type="radio" name="${name}" value="${k}" ${k === val ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>`;
 const picked = n => $(`input[name="${n}"]:checked`).value;
+const STAR = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3.4l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.2l-5.4 2.9 1.1-6.1L3.2 9.8l6.1-.8z" stroke-linejoin="round"/></svg>';
 const SAY = w => `<button class="say" data-say="${esc(w)}" aria-label="發音" title="發音"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z" stroke-linejoin="round"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></button>`;
 function speak(word) {
   if (!('speechSynthesis' in window)) return;
@@ -508,6 +863,7 @@ function speak(word) {
 }
 if (!('speechSynthesis' in window)) document.documentElement.classList.add('nosay');
 document.addEventListener('click', e => { const b = e.target.closest('[data-say]'); if (b) speak(b.dataset.say); });
+
 /* words whose definitions can't be told apart: show first letter + length so the question has one answer */
 const CLUSTERS = [
   ['weird', 'bizarre', 'unnatural', 'abnormal'], ['jumbo', 'gigantic', 'elephantine'], ['expensive', 'valuable'],
@@ -518,41 +874,42 @@ const HINTED = new Set(CLUSTERS.flat());
 const patHint = w => (prefs.pt === 'on' || (prefs.pt !== 'off' && HINTED.has(w.w)))
   ? `<p class="pat">${esc(w.w[0])} ${Array(w.w.length - 1).fill('_').join(' ')}<span>${w.w.length} 個字母</span></p>` : '';
 const maskDef = w => w.d.replace(new RegExp('\\b' + w.w + '\\w*', 'gi'), '____');
+const hasCloze = w => !!w.s && new RegExp('\\b' + w.w + '\\b', 'i').test(w.s);
 function splitSentence(w) {
   const m = w.s.match(new RegExp('\\b' + w.w + '\\b', 'i'));
   return [w.s.slice(0, m.index), w.s.slice(m.index + m[0].length)];
 }
 function make(word, mode) {
   const avail = ['def'];
-  if (new RegExp('\\b' + word.w + '\\b', 'i').test(word.s)) avail.push('cloze');
+  if (hasCloze(word)) avail.push('cloze');
   const type = mode === 'mix' ? avail[rnd(avail.length)] : (avail.includes(mode) ? mode : 'def');
   return { word, type };
 }
 function isRight(q, val) {
   const full = val.replace(/[^A-Za-z]/g, '');   // stray symbols or spaces are not spelling mistakes
-  const accept = [q.word.w, ...(ALT[q.word.w] || [])];
+  const accept = [q.word.w.replace(/[^A-Za-z]/g, ''), ...(ALT[q.word.w] || [])];
   const strict = /[A-Z]/.test(q.word.w);
   return accept.some(a => strict ? a === full : a.toLowerCase() === full.toLowerCase());
 }
 
 /* question body (before answering) and its marked version (after) */
 function qBody(q, i) {
-  const w = q.word, pos = `<span class="pos">${esc(w.p)}</span>`;
+  const w = q.word, pos = w.p ? `<span class="pos">${esc(w.p)}</span>` : '';
   if (q.type === 'def') return `<p class="prompt">${esc(maskDef(w))}${pos}</p>${patHint(w)}<input class="staff fld" data-i="${i}" aria-label="拼出單字" ${ATTR}>`;
   const [b, a] = splitSentence(w);
   return `<p class="prompt">${esc(b)}<input class="blank fld" data-i="${i}" aria-label="填入單字" ${ATTR}>${esc(a)}${pos}</p>${patHint(w)}
     ${prefs.sd === 'on' ? '' : `<button class="btn ghost sm" data-hint="${i}" type="button">看定義<span class="kbhint">　按 /</span></button>`}
     <p class="hint" id="h${i}" ${prefs.sd === 'on' ? '' : 'hidden'}>${esc(maskDef(w))}</p>`;
 }
-const ignored = val => { const x = (val || '').replace(/[A-Za-z]/g, '').replace(/\s/g, ''); return x ? `<span class="typed" style="text-decoration:none">已忽略符號 ${esc(x)}</span>` : ''; };
+const ignored = val => { const x = (val || '').replace(/[A-Za-z]/g, '').replace(/\s/g, ''); return x ? `<span class="note">已忽略符號 ${esc(x)}</span>` : ''; };
 function qDone(q, val, ok) {
   const w = q.word;
   let prompt;
-  if (q.type === 'def') prompt = `<p class="prompt">${esc(maskDef(w))}<span class="pos">${esc(w.p)}</span></p>`;
+  if (q.type === 'def') prompt = `<p class="prompt">${esc(maskDef(w))}${w.p ? `<span class="pos">${esc(w.p)}</span>` : ''}</p>`;
   else { const [b, a] = splitSentence(w); prompt = `<p class="prompt">${esc(b)}<span class="fill">${esc(w.w)}</span>${esc(a)}</p>`; }
   const verdict = ok
-    ? `<span class="v ok">正確</span>${q.type === 'def' ? `<div class="staff">${esc(w.w)}</div>` : ''}${SAY(w.w)}${ignored(val)}`
-    : `<span class="v bad">錯誤</span><div class="staff">${esc(w.w)}</div>${SAY(w.w)}<span class="typed">${val ? esc(val) : '未作答'}</span>`;
+    ? `${q.type === 'def' ? `<div class="staff">${esc(w.w)}</div>` : ''}${SAY(w.w)}${ignored(val)}`
+    : `<div class="staff">${esc(w.w)}</div>${SAY(w.w)}<span class="typed">${val ? esc(val) : '未作答'}</span>`;
   return `${prompt}<div class="verdict">${verdict}</div>`;
 }
 function bindFields(root, onChange) {
@@ -574,27 +931,82 @@ function bindFields(root, onChange) {
 }
 
 /* ---------- nav + routing ---------- */
-const TABS = [['list', '單字表'], ['quiz', '測驗'], ['practice', '練習'], ['weak', '錯字清單'], ['history', '記錄']];
-let cur = 'quiz';
+const IC = {
+  home: '<path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
+  play: '<path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/>',
+  weak: '<path d="M12 3.4l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.2l-5.4 2.9 1.1-6.1L3.2 9.8l6.1-.8z"/>',
+  history: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'
+};
+const TABS = [['home', '首頁'], ['list', '單字表'], ['play', '練習'], ['weak', '錯字'], ['history', '記錄']];
+let cur = 'home';
 function renderNav() {
   const wn = Object.keys(getWeak()).length;
   $('#nav').innerHTML = TABS.map(([k, l]) =>
-    `<a href="#${k}" class="${k === cur ? 'on' : ''}">${l}${k === 'weak' && wn ? `<span class="ct">${wn}</span>` : ''}</a>`).join('');
+    `<a href="#${k}" class="${k === cur ? 'on' : ''}"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>${l}${k === 'weak' && wn ? `<span class="ct">${wn}</span>` : ''}</a>`).join('');
+  renderAcct();
 }
-const VIEWS = { list: viewList, quiz: viewQuiz, practice: viewPractice, weak: viewWeak, history: viewHistory };
+const VIEWS = { home: viewHome, list: viewList, play: viewPlay, weak: viewWeak, history: viewHistory, me: viewMe };
 function route() {
-  const h = (location.hash || '#quiz').slice(1);
-  cur = VIEWS[h] ? h : 'quiz';
-  document.body.classList.remove('focus');
+  const h = (location.hash || '#home').slice(1);
+  cur = VIEWS[h] ? h : 'home';
+  document.body.classList.remove('focus'); $('#sheet').hidden = true;
   renderNav(); window.scrollTo(0, 0); VIEWS[cur]();
 }
 window.addEventListener('hashchange', route);
 
-/* ---------- word list ---------- */
-function viewList() {
-  const letters = [...new Set(WORDS.map(w => w.w[0].toLowerCase()))];
-  const wk = getWeak();
+/* ---------- home: where every word stands ---------- */
+function viewHome() {
+  const wk = getWeak(), pg = getProg(), cnt = { known: 0, learning: 0, weak: 0, new: 0 };
+  ALL.forEach(x => cnt[stateOf(x.w, wk, pg)]++);
   app.innerHTML = `
+    <div class="legend">
+      <span><i class="sw known"></i><b>${cnt.known}</b> 已熟</span>
+      <span><i class="sw learning"></i><b>${cnt.learning}</b> 練習中</span>
+      <span><i class="sw weak"></i><b>${cnt.weak}</b> 錯字</span>
+      <span><i class="sw new"></i><b>${cnt.new}</b> 未練</span></div>
+    <p class="note">每個方格是一個字。點方格看單字；一個字不靠提示拼對兩次就算已熟。</p>
+    ${ownedDecks().map(d => {
+      const k = d.words.filter(x => stateOf(x.w, wk, pg) === 'known').length;
+      return `<section class="deck"><div class="dh"><h2>${esc(d.name)}</h2><span class="note">${k} / ${d.words.length}</span></div>
+        <div class="map">${d.words.map(x => `<button class="cell ${stateOf(x.w, wk, pg)}" data-w="${esc(x.w)}" aria-label="${esc(x.w)}"></button>`).join('')}</div></section>`;
+    }).join('')}
+    <div class="homego"><button class="btn" id="hq">開始測驗</button><button class="btn sec" id="hp">逐題練習</button>
+      ${cnt.weak ? `<button class="btn sec" id="hw">練錯字（${cnt.weak}）</button>` : ''}</div>${storeNote()}`;
+  $('#hq').onclick = () => startQuiz();
+  $('#hp').onclick = () => startPractice();
+  const hw = $('#hw'); if (hw) hw.onclick = () => startPractice({ deck: 'all', filter: 'weak' });
+  app.onclick = e => {
+    const c = e.target.closest('.cell'); if (!c) return;
+    const x = WMAP[c.dataset.w], sh = $('#sheet'), same = !sh.hidden && sh.dataset.w === x.w;
+    $$('.cell.sel').forEach(y => y.classList.remove('sel'));
+    if (same) { sh.hidden = true; return; }
+    c.classList.add('sel'); sh.dataset.w = x.w;
+    const re = new RegExp('\\b(' + x.w + '\\w*)', 'gi'), on = !!getWeak()[x.w];
+    sh.innerHTML = `<button class="btn ghost sm x" id="shx" aria-label="關閉">關閉</button>
+      <div><span class="w">${esc(x.w)}</span>${SAY(x.w)}<span class="pos">${esc(x.p)}</span></div>
+      <div class="d">${esc(x.d)}</div>${x.s ? `<div class="s">${esc(x.s).replace(re, '<b>$1</b>')}</div>` : ''}
+      <div class="actions" style="margin-top:10px"><button class="btn sec sm" id="shf">${on ? '取消標記' : '標記為不會'}</button></div>`;
+    sh.hidden = false;
+    $('#shx').onclick = () => { sh.hidden = true; c.classList.remove('sel'); };
+    $('#shf').onclick = () => {
+      const w2 = getWeak(); if (w2[x.w]) dropWeak(w2, x.w); else w2[x.w] = { miss: 0, last: Date.now(), streak: 0, manual: true };
+      store.set('weak', w2); sh.hidden = true; viewHome(); renderNav();
+    };
+  };
+}
+
+/* ---------- word list ---------- */
+let listDeck = null;
+function viewList() {
+  const decks = ownedDecks().length ? DECKS.filter(d => d.words.length || d.local) : DECKS;
+  if (!listDeck || !decks.find(d => d.id === listDeck)) listDeck = prefs.ld && decks.find(d => d.id === prefs.ld) ? prefs.ld : decks[0].id;
+  const deck = DECKS.find(d => d.id === listDeck), words = deck.words, wk = getWeak();
+  const letters = [...new Set(words.map(w => w.w[0].toLowerCase()))];
+  app.innerHTML = `
+    ${decks.length > 1 ? `<div class="row" style="margin:0 0 14px">${seg('ld', Object.fromEntries(decks.map(d => [d.id, d.short])), listDeck)}</div>` : ''}
+    ${deck.local ? importBox(deck) : ''}
+    ${words.length ? `
     <div class="tools"><input class="find" id="find" type="search" placeholder="搜尋單字或定義" ${ATTR}></div>
     <div class="letters" id="letters"><button class="lt on" data-l="">全部</button>${letters.map(l => `<button class="lt" data-l="${l}">${l.toUpperCase()}</button>`).join('')}
       <button class="lt starf" id="starf" aria-pressed="false" aria-label="只看已標星" title="只看已標星">
@@ -603,15 +1015,17 @@ function viewList() {
       <span class="note" id="shown"></span></div>
     <p class="empty" id="none" hidden>沒有符合的字。在單字旁點星星可以標記。</p>
     <div id="entries" class="${prefs.lm === 'word' ? 'm-word' : prefs.lm === 'def' ? 'm-def' : ''}">
-    ${WORDS.map(w => {
+    ${words.map(w => {
       const re = new RegExp('\\b(' + w.w + '\\w*)', 'gi');
       return `<div class="entry" data-w="${esc(w.w)}" data-l="${w.w[0].toLowerCase()}" data-t="${esc((w.w + ' ' + w.d).toLowerCase())}">
         <div class="no">${w.n}</div>
         <div><div><span class="w">${esc(w.w)}</span>${SAY(w.w)}<span class="pos">${esc(w.p)}</span></div>
-          <div class="d">${esc(w.d)}</div><div class="s">${esc(w.s).replace(re, '<b>$1</b>')}</div></div>
-        <button class="star${wk[w.w] ? ' on' : ''}" data-flag="${esc(w.w)}" aria-pressed="${!!wk[w.w]}" aria-label="標記為不會" title="標記為不會">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3.4l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17.2l-5.4 2.9 1.1-6.1L3.2 9.8l6.1-.8z" stroke-linejoin="round"/></svg></button></div>`;
-    }).join('')}</div>`;
+          <div class="d">${esc(w.d)}</div>${w.s ? `<div class="s">${esc(w.s).replace(re, '<b>$1</b>')}</div>` : ''}</div>
+        <button class="star${wk[w.w] ? ' on' : ''}" data-flag="${esc(w.w)}" aria-pressed="${!!wk[w.w]}" aria-label="標記為不會" title="標記為不會">${STAR}</button></div>`;
+    }).join('')}</div>` : ''}`;
+  $$('input[name="ld"]').forEach(r => r.onchange = () => { listDeck = picked('ld'); prefs.ld = listDeck; savePrefs(); viewList(); });
+  if (deck.local) bindImport(deck);
+  if (!words.length) return;
   let L = '';
   const apply = () => {
     const t = $('#find').value.trim().toLowerCase(), S = $('#starf').getAttribute('aria-pressed') === 'true'; let n = 0;
@@ -619,7 +1033,7 @@ function viewList() {
       const show = (!L || e.dataset.l === L) && (!t || e.dataset.t.includes(t)) && (!S || e.querySelector('.star.on'));
       e.hidden = !show; if (show) n++;
     });
-    $('#shown').textContent = n === WORDS.length ? '' : `${n} 字`;
+    $('#shown').textContent = n === words.length ? '' : `${n} 字`;
     $('#none').hidden = n > 0;
   };
   const starCount = () => { const c = Object.keys(getWeak()).length; $('#sc').textContent = c ? c : ''; };
@@ -638,36 +1052,73 @@ function viewList() {
   $('#entries').onclick = e => {
     const fl = e.target.closest('[data-flag]');
     if (fl) {
-      const w = fl.dataset.flag, wk = getWeak();
-      if (wk[w]) delete wk[w]; else wk[w] = { miss: 0, last: Date.now(), streak: 0, manual: true };
-      store.set('weak', wk); fl.classList.toggle('on', !!wk[w]); fl.setAttribute('aria-pressed', !!wk[w]); renderNav(); starCount(); return;
+      const w = fl.dataset.flag, wk2 = getWeak();
+      if (wk2[w]) dropWeak(wk2, w); else wk2[w] = { miss: 0, last: Date.now(), streak: 0, manual: true };
+      store.set('weak', wk2); fl.classList.toggle('on', !!wk2[w]); fl.setAttribute('aria-pressed', !!wk2[w]); renderNav(); starCount(); return;
     }
     const t = e.target.closest('.w,.d,.s'); if (t) t.classList.add('rev');
   };
 }
+/* a deck that lives only on this device: paste a list, no login needed */
+function importBox(deck) {
+  return `<div class="card" style="margin-bottom:18px">
+    <p><b>${deck.words.length ? `已匯入 ${deck.words.length} 字` : '貼上單字表'}</b></p>
+    <p class="note" style="margin-top:4px">每行一個字，欄位用 | 分開：單字|詞性|定義|例句。例句可以省略。只存在這台裝置，不會上傳，也不需要登入。</p>
+    <textarea class="field" id="imp" style="margin-top:12px" placeholder="abacus|n|a device used for counting.|The grocer used an abacus." spellcheck="false" ${ATTR.replace('autocomplete="nope"', 'autocomplete="off"')}></textarea>
+    <div class="actions" style="margin-top:12px"><button class="btn sm" id="impgo">${deck.words.length ? '用這份取代' : '匯入'}</button>
+      ${deck.words.length ? '<button class="btn ghost sm danger" id="impclr">清除這份單字表</button>' : ''}<span class="note" id="impmsg"></span></div></div>`;
+}
+function bindImport(deck) {
+  $('#impgo').onclick = () => {
+    const txt = $('#imp').value, tmp = parseDeck(txt, 'mine', new Set(ALL.filter(x => x.deck !== 'mine').map(x => x.w.toLowerCase())));
+    if (!tmp.length) { $('#impmsg').textContent = '沒有讀到可用的單字，請確認格式。'; return; }
+    store.set('mine', txt, true); buildWords(); viewList(); renderNav();
+  };
+  const c = $('#impclr');
+  if (c) c.onclick = () => { if (confirm('確定清除這份單字表？')) { store.set('mine', '', true); buildWords(); viewList(); } };
+}
+
+/* ---------- play: pick a range, then quiz or practice ---------- */
+const deckOpts = () => ({ all: '全部', ...Object.fromEntries(ownedDecks().map(d => [d.id, d.short])) });
+function viewPlay() {
+  if (prefs.deck !== 'all' && !ownedDecks().find(d => d.id === prefs.deck)) prefs.deck = 'all';
+  app.innerHTML = `
+    <h2>練習</h2>
+    <div class="row"><span class="lab">範圍</span>${seg('deck', deckOpts(), prefs.deck)}</div>
+    <div class="row"><span class="lab">篩選</span>${seg('filter', { all: '全部', new: '沒練過', weak: '只錯字' }, prefs.filter)}<span class="note" id="pc"></span></div>
+    <details class="opts"><summary>題目選項</summary>
+      <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
+      <div class="row"><span class="lab">定義</span>${seg('sd', { off: '按 / 或按鈕才看', on: '例句題一律顯示' }, prefs.sd)}</div>
+      <div class="row"><span class="lab">字母提示</span>${seg('pt', { auto: '只在同義字出現', on: '每題顯示', off: '不顯示' }, prefs.pt)}</div>
+      <div class="row"><span class="lab">逐題題數</span>${seg('size', { 10: '10', 25: '25', 50: '50', all: '全部' }, prefs.size)}</div>
+    </details>
+    <div class="actions"><button class="btn" id="goq">開始測驗（25 題）</button><button class="btn sec" id="gop">逐題練習</button></div>
+    <p class="note" style="margin-top:22px">測驗：不重複隨機抽題，每題 4 分，交卷後一起對答案。<br>逐題練習：答完馬上對答案，答錯的字隔幾題會再出現，拼對才算過。<br>拼錯的字會進錯字清單，之後連續兩次一次就拼對，會自動移出。</p>${storeNote()}`;
+  const save = () => { ['deck', 'filter', 'mode', 'sd', 'pt', 'size'].forEach(k => prefs[k] = picked(k)); savePrefs(); };
+  const count = () => {
+    const n = pool(picked('deck'), picked('filter')).length;
+    $('#pc').textContent = `${n} 字`; $('#goq').disabled = $('#gop').disabled = !n;
+    $('#goq').textContent = `開始測驗（${Math.min(N, n)} 題）`;
+  };
+  $$('input[type=radio]').forEach(r => r.onchange = () => { save(); count(); });
+  count();
+  $('#goq').onclick = () => { save(); startQuiz(); };
+  $('#gop').onclick = () => { save(); startPractice(); };
+}
+const noPool = () => { app.innerHTML = `<div class="empty">這個範圍目前沒有字可以出。<br><a class="btn" href="#play">調整範圍</a></div>`; };
 
 /* ---------- quiz ---------- */
 let qs = [], retry = false;
-function viewQuiz() {
-  const last = getHist().find(h => h.kind === 'quiz');
-  app.innerHTML = `
-    <h2>測驗</h2>
-    <p class="note">從 250 字中不重複隨機抽 25 題，每題 4 分。</p>
-    <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
-    <div class="row"><span class="lab">定義</span>${seg('sd', { off: '按 / 或按鈕才看', on: '例句題一律顯示' }, prefs.sd)}</div>
-    <div class="row"><span class="lab">字母提示</span>${seg('pt', { auto: '只在同義字出現', on: '每題顯示', off: '不顯示' }, prefs.pt)}</div>
-    <div class="actions"><button class="btn" id="go">開始測驗</button></div>
-    ${last ? `<p class="note" style="margin-top:28px">上次 ${fmt(last.t)}，${last.right * 4} 分（${last.right}/${last.total}）。<a href="#history">全部記錄</a></p>` : ''}
-    ${storeNote()}`;
-  $('#go').onclick = () => { prefs.mode = picked('mode'); prefs.sd = picked('sd'); prefs.pt = picked('pt'); savePrefs(); startQuiz(); };
-}
 function startQuiz(list) {
   retry = !!list;
-  qs = list || sample(WORDS, N).map(w => make(w, prefs.mode));
+  if (!list) { const p = pool(prefs.deck, prefs.filter); if (!p.length) return noPool(); list = sample(p, Math.min(N, p.length)).map(w => make(w, prefs.mode)); }
+  qs = list;
+  document.body.classList.add('focus'); $('#sheet').hidden = true;
   app.innerHTML = `<div id="paper">${qs.map((q, i) =>
-    `<div class="q" id="q${i}"><div class="no">${i + 1}</div><div class="body">${qBody(q, i)}</div></div>`).join('')}</div>
+    `<div class="q" id="q${i}"><span class="qn">${i + 1} / ${qs.length}</span><div class="body">${qBody(q, i)}</div></div>`).join('')}</div>
     <div class="dock-sp"></div>
     <div class="dock"><span class="note" id="cnt"></span><button class="btn" id="submit">交卷</button></div>`;
+  window.scrollTo(0, 0);
   const count = () => { $('#cnt').textContent = `已填 ${f.filter(x => x.value.trim()).length} / ${qs.length}`; };
   const f = bindFields(app, count);
   count(); f[0] && f[0].focus();
@@ -679,16 +1130,17 @@ function gradeQuiz() {
     const val = $(`input[data-i="${i}"]`).value.trim(), ok = isRight(q, val);
     q.ok = ok; if (ok) right++; else wrong.push({ w: q.word.w, a: val });
     recordResult(q.word.w, ok, true);
-    const row = $('#q' + i); row.classList.add(ok ? 'ok' : 'no');
+    const row = $('#q' + i); row.classList.add(ok ? 'is-ok' : 'is-bad');
     row.querySelector('.body').innerHTML = qDone(q, val, ok);
   });
-  logHist({ t: Date.now(), kind: 'quiz', mode: prefs.mode, retry, right, total: qs.length, wrong });
+  logHist({ t: Date.now(), kind: 'quiz', mode: prefs.mode, deck: prefs.deck, filter: prefs.filter, retry, right, total: qs.length, wrong });
+  document.body.classList.remove('focus');
   $('.dock').remove(); $('.dock-sp').remove();
   app.insertAdjacentHTML('afterbegin', `<section class="sumry">
     <div class="score"><span class="n">${right * 4}</span><span class="of">/ ${qs.length * 4} 分</span></div>
     <p class="note">${right} / ${qs.length} 題正確${retry ? '（重做）' : ''}</p>
     <div class="actions">${wrong.length ? '<button class="btn" id="redo">只重做錯的</button>' : ''}
-      <button class="btn sec" id="again">重新抽 25 題</button>
+      <button class="btn sec" id="again">再抽一份</button>
       ${wrong.length ? '<button class="btn ghost" id="onlywrong">只看錯的</button>' : ''}
       <a class="btn ghost" href="#weak">錯字清單</a></div></section>`);
   window.scrollTo(0, 0);
@@ -701,27 +1153,15 @@ function gradeQuiz() {
 
 /* ---------- practice: one at a time, misses return a few cards later ---------- */
 let P = null;
-function viewPractice() {
-  const wn = Object.keys(getWeak()).length;
-  app.innerHTML = `
-    <h2>逐題練習</h2>
-    <p class="note">一次一題，答完馬上對答案。答錯的字隔幾題會再出現，拼對才算過。</p>
-    <div class="row"><span class="lab">範圍</span>${seg('src', { all: '全部 250 字', weak: `只練錯字（${wn}）` }, prefs.src)}</div>
-    <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
-    <div class="row"><span class="lab">定義</span>${seg('sd', { off: '按 / 或按鈕才看', on: '例句題一律顯示' }, prefs.sd)}</div>
-    <div class="row"><span class="lab">字母提示</span>${seg('pt', { auto: '只在同義字出現', on: '每題顯示', off: '不顯示' }, prefs.pt)}</div>
-    <div class="actions"><button class="btn" id="go">開始練習</button></div>
-    <p class="note" style="margin-top:28px">在測驗或練習中拼錯的字會進錯字清單。之後連續兩次一次就拼對，會自動移出。</p>${storeNote()}`;
-  $('#go').onclick = () => { prefs.src = picked('src'); prefs.mode = picked('mode'); prefs.sd = picked('sd'); prefs.pt = picked('pt'); savePrefs(); startPractice(); };
-}
-function startPractice() {
-  const wk = getWeak();
-  const pool = prefs.src === 'weak' ? WORDS.filter(w => wk[w.w]) : WORDS;
-  if (!pool.length) {
-    app.innerHTML = `<div class="empty">錯字清單目前是空的。先做一次測驗或練習，拼錯的字會記在這裡。<br><a class="btn" href="#quiz">去做測驗</a></div>`;
+function startPractice(scope) {
+  scope = scope && scope.deck ? scope : { deck: prefs.deck, filter: prefs.filter };
+  const p = pool(scope.deck, scope.filter);
+  if (!p.length) {
+    app.innerHTML = `<div class="empty">${scope.filter === 'weak' ? '錯字清單目前是空的。先做一次測驗或練習，拼錯的字會記在這裡。' : '這個範圍目前沒有字可以出。'}<br><a class="btn" href="#play">調整範圍</a></div>`;
     return;
   }
-  P = { queue: sample(pool, pool.length).map(w => make(w, prefs.mode)), total: pool.length, first: 0, failed: new Set() };
+  const k = prefs.size === 'all' ? p.length : Math.min(+prefs.size || 25, p.length);
+  P = { queue: sample(p, k).map(w => make(w, prefs.mode)), total: k, first: 0, failed: new Set(), scope };
   card();
 }
 const leftWords = () => new Set(P.queue.map(x => x.word.w)).size;
@@ -733,7 +1173,7 @@ function card() {
     <div class="pcard" id="q0"><div class="body">${qBody(q, 0)}</div></div>
     <div class="dock-sp"></div>
     <div class="dock"><span class="note kbhint">按 Enter</span><button class="btn" id="act">檢查</button></div>`;
-  document.body.classList.add('focus');
+  document.body.classList.add('focus'); $('#sheet').hidden = true;
   const f = bindFields(app); f[0].focus();
   f[0].addEventListener('keydown', e => { if (e.key === 'Enter' && !f[0].disabled) check(); });
   $('#act').onclick = check; $('#stop').onclick = endPractice;
@@ -744,18 +1184,18 @@ function check() {
   const firstTry = !P.failed.has(w);
   if (ok) { if (firstTry) P.first++; recordResult(w, true, firstTry); }
   else { P.failed.add(w); recordResult(w, false, false); P.queue.splice(Math.min(P.queue.length, 6), 0, make(q.word, prefs.mode)); }
-  const box = $('#q0'); box.classList.add(ok ? 'ok' : 'no');
+  const box = $('#q0'); box.classList.add(ok ? 'is-ok' : 'is-bad');
   box.querySelector('.body').innerHTML = qDone(q, val, ok);
   const act = $('#act'); act.textContent = '下一題'; act.onclick = card; act.focus();
 }
 function endPractice() {
   const answered = P.total - leftWords(), miss = [...P.failed];
   document.body.classList.remove('focus');
-  if (answered > 0) logHist({ t: Date.now(), kind: 'practice', mode: prefs.mode, src: prefs.src, right: P.first, total: answered, wrong: miss.map(w => ({ w })) });
+  if (answered > 0) logHist({ t: Date.now(), kind: 'practice', mode: prefs.mode, deck: P.scope.deck, filter: P.scope.filter, right: P.first, total: answered, wrong: miss.map(w => ({ w })) });
   app.innerHTML = `<section class="sumry"><div class="score"><span class="n">${P.first}</span><span class="of">/ ${answered} 一次就拼對</span></div>
     ${miss.length ? `<p class="note" style="margin-top:10px">這輪拼錯過的字</p><div class="chips">${miss.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div>` : '<p class="note" style="margin-top:10px">這輪沒有拼錯。</p>'}
     <div class="actions"><button class="btn" id="again">再練一輪</button><a class="btn sec" href="#weak">錯字清單</a></div></section>`;
-  $('#again').onclick = startPractice;
+  $('#again').onclick = () => startPractice(P.scope);
 }
 
 /* ---------- weak words ---------- */
@@ -765,29 +1205,29 @@ function viewWeak() {
     .sort((a, b) => b.miss - a.miss || b.last - a.last);
   if (!items.length) {
     app.innerHTML = `<h2>錯字清單</h2><div class="empty">還沒有錯字。測驗或練習中拼錯的字會出現在這裡，也可以在單字表手動標記。<br>
-      <a class="btn" href="#practice">開始練習</a></div>${storeNote()}`;
+      <a class="btn" href="#play">開始練習</a></div>${storeNote()}`;
     return;
   }
-  app.innerHTML = `<h2>錯字清單</h2><p class="note">共 ${items.length} 字，錯最多次的在最上面。</p>
-    <div class="actions" style="margin-top:16px"><button class="btn" id="prac">練習這些字</button>
+  app.innerHTML = `<h2>錯字清單</h2><p class="note" style="margin-top:4px">共 ${items.length} 字，錯最多次的在最上面。</p>
+    <div class="actions" style="margin-top:14px"><button class="btn" id="prac">練習這些字</button>
       <button class="btn sec" id="mask">${wmask ? '顯示單字' : '遮住單字'}</button>
       <button class="btn ghost" id="clr">清除全部</button></div>
-    <div id="wl" class="${wmask ? 'm-word' : ''}" style="margin-top:22px">
+    <div id="wl" class="${wmask ? 'm-word' : ''}" style="margin-top:20px">
     ${items.map(x => `<div class="entry" data-w="${esc(x.word.w)}"><div class="no">${x.word.n}</div>
       <div><div><span class="w">${esc(x.word.w)}</span>${SAY(x.word.w)}<span class="pos">${esc(x.word.p)}</span></div>
         <div class="d">${esc(x.word.d)}</div>
         <div class="meta">${x.miss ? `錯 ${x.miss} 次，` : '手動標記，'}連對 ${x.streak || 0} / 2，${fmt(x.last)}</div></div>
       <button class="btn ghost sm" data-rm="${esc(x.word.w)}">移除</button></div>`).join('')}</div>${storeNote()}`;
-  $('#prac').onclick = () => { prefs.src = 'weak'; savePrefs(); startPractice(); };
+  $('#prac').onclick = () => startPractice({ deck: 'all', filter: 'weak' });
   $('#mask').onclick = () => { wmask = !wmask; viewWeak(); };
   let armed = false;
   $('#clr').onclick = e => {
     if (!armed) { armed = true; e.target.textContent = '再按一次清除'; setTimeout(() => { armed = false; if (e.target.isConnected) e.target.textContent = '清除全部'; }, 3000); return; }
-    store.set('weak', {}); renderNav(); viewWeak();
+    const wk = getWeak(); Object.keys(wk).forEach(w => dropWeak(wk, w)); store.set('weak', wk); renderNav(); viewWeak();
   };
   $('#wl').onclick = e => {
     const rm = e.target.closest('[data-rm]');
-    if (rm) { const wk = getWeak(); delete wk[rm.dataset.rm]; store.set('weak', wk); renderNav(); viewWeak(); return; }
+    if (rm) { const wk = getWeak(); dropWeak(wk, rm.dataset.rm); store.set('weak', wk); renderNav(); viewWeak(); return; }
     const t = e.target.closest('.w'); if (t) t.classList.add('rev');
   };
 }
@@ -796,18 +1236,19 @@ function viewWeak() {
 function viewHistory() {
   const h = getHist();
   if (!h.length) {
-    app.innerHTML = `<h2>記錄</h2><div class="empty">還沒有記錄。完成一次測驗或練習後會出現在這裡。<br><a class="btn" href="#quiz">去做測驗</a></div>${storeNote()}`;
+    app.innerHTML = `<h2>記錄</h2><div class="empty">還沒有記錄。完成一次測驗或練習後會出現在這裡。<br><a class="btn" href="#play">去練習</a></div>${storeNote()}`;
     return;
   }
   const quizzes = h.filter(x => x.kind === 'quiz');
   const stat = quizzes.length ? `測驗 ${quizzes.length} 次，平均 ${Math.round(quizzes.reduce((a, x) => a + x.right / x.total * 100, 0) / quizzes.length)} 分，最高 ${Math.round(Math.max(...quizzes.map(x => x.right / x.total * 100)))} 分。` : '';
-  app.innerHTML = `<h2>記錄</h2><p class="note">${stat}最近 ${h.length} 筆。</p>
-    <div style="margin-top:18px">${h.map(x => {
-      const label = x.kind === 'quiz' ? `測驗，${MODES[x.mode] || ''}${x.retry ? '，重做' : ''}` : `練習，${x.src === 'weak' ? '錯字' : '全部'}`;
+  app.innerHTML = `<h2>記錄</h2><p class="note" style="margin-top:4px">${stat}最近 ${h.length} 筆。</p>
+    <div style="margin-top:16px">${h.map(x => {
+      const scope = x.deck === undefined ? (x.src === 'weak' ? '錯字' : '世新 250') : deckName(x.deck) + (x.filter === 'weak' ? ' · 錯字' : x.filter === 'new' ? ' · 未練' : '');
+      const label = x.kind === 'quiz' ? `測驗 · ${scope}${x.retry ? ' · 重做' : ''}` : `練習 · ${scope}`;
       const score = x.kind === 'quiz' ? `${Math.round(x.right / x.total * 100)} 分` : `${x.right} / ${x.total}`;
       const sub = x.kind === 'quiz' ? `${x.right} / ${x.total}` : '一次拼對';
       const wl = x.wrong.length ? x.wrong.map(y => `<div><b>${esc(y.w)}</b>${y.a !== undefined ? `<span class="typed">${y.a ? esc(y.a) : '未作答'}</span>` : ''}</div>`).join('') : '<span class="note">全對</span>';
-      return `<details class="h"><summary><span class="note">${fmt(x.t)}</span><span>${label}</span><span><span class="sc">${score}</span> <span class="note">${sub}</span></span></summary>
+      return `<details class="h"><summary><span class="note">${fmt(x.t)}</span><span>${esc(label)}</span><span><span class="sc">${score}</span> <span class="note">${sub}</span></span></summary>
         <div class="wl">${wl}</div></details>`;
     }).join('')}</div>
     <div class="actions"><button class="btn ghost" id="clr">清除記錄</button></div>${storeNote()}`;
@@ -817,6 +1258,150 @@ function viewHistory() {
     store.set('hist', []); viewHistory();
   };
 }
+
+/* ---------- account + sync: progress lives in the GitHub repo, the token only in encrypted form ---------- */
+const GH = { owner: 'breadMSA', repo: 'spelling-bee', branch: 'data' };
+const TE = new TextEncoder(), TD = new TextDecoder();
+const b64e = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const b64d = s => Uint8Array.from(atob(String(s).replace(/\s/g, '')), c => c.charCodeAt(0));
+async function kdf(pw, salt) {
+  const m = await crypto.subtle.importKey('raw', TE.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, m, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function seal(pw, text) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await kdf(pw, salt), TE.encode(text));
+  return { v: 1, salt: b64e(salt), iv: b64e(iv), ct: b64e(new Uint8Array(ct)) };
+}
+async function unseal(pw, o) {
+  return TD.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64d(o.iv) }, await kdf(pw, b64d(o.salt)), b64d(o.ct)));
+}
+const gh = (path, token, init = {}) => fetch('https://api.github.com' + path, { ...init,
+  headers: { Accept: 'application/vnd.github+json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(init.headers || {}) } });
+const repoPath = f => `/repos/${GH.owner}/${GH.repo}/contents/${f}`;
+async function getFile(f, token) {
+  const r = await gh(`${repoPath(f)}?ref=${GH.branch}&_=${Date.now()}`, token);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('GitHub 回應 ' + r.status);
+  const j = await r.json(); return { sha: j.sha, text: TD.decode(b64d(j.content)) };
+}
+async function putFile(f, text, sha, token, msg) {
+  const body = { message: msg, content: b64e(TE.encode(text)), branch: GH.branch }; if (sha) body.sha = sha;
+  const r = await gh(repoPath(f), token, { method: 'PUT', body: JSON.stringify(body) });
+  if (r.status === 409 || r.status === 422) { const e = new Error('conflict'); e.conflict = true; throw e; }
+  if (!r.ok) throw new Error('GitHub 回應 ' + r.status);
+}
+const getSession = () => store.get('session', null);
+const canon = s => JSON.stringify(s, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) : v);
+const snapshot = () => ({ v: 1, weak: getWeak(), prog: getProg(), rm: getRm(), hist: getHist() });
+function merge(a, b) {
+  const rm = { ...(b.rm || {}) }; for (const [w, t] of Object.entries(a.rm || {})) rm[w] = Math.max(rm[w] || 0, t);
+  const weak = {}, aw = a.weak || {}, bw = b.weak || {};
+  for (const w of new Set([...Object.keys(aw), ...Object.keys(bw)])) {
+    const x = aw[w], y = bw[w];
+    const p = !x ? y : !y ? x : ((x.last || 0) > (y.last || 0) || ((x.last || 0) === (y.last || 0) && (x.streak || 0) >= (y.streak || 0))) ? x : y;
+    if ((rm[w] || 0) > (p.last || 0)) continue;
+    weak[w] = p;
+  }
+  const prog = {}, ap = a.prog || {}, bp = b.prog || {};
+  for (const w of new Set([...Object.keys(ap), ...Object.keys(bp)])) {
+    const x = ap[w] || {}, y = bp[w] || {};
+    prog[w] = { ok: Math.max(x.ok || 0, y.ok || 0), miss: Math.max(x.miss || 0, y.miss || 0), t: Math.max(x.t || 0, y.t || 0) };
+  }
+  const seen = new Set(), hist = [];
+  for (const h of [...(a.hist || []), ...(b.hist || [])].sort((p, q) => q.t - p.t)) { const k = h.t + h.kind; if (!seen.has(k)) { seen.add(k); hist.push(h); } }
+  return { v: 1, weak, prog, rm, hist: hist.slice(0, 200) };
+}
+let syncState = { s: 'off' }, syncBusy = false, syncAgain = false, syncTimer = 0;
+function renderAcct() {
+  const a = $('#acct'), s = getSession(); if (!a) return;
+  const m = { ok: ['on', `已同步 ${syncState.t ? hm(syncState.t) : ''}`], busy: ['busy', '同步中'], err: ['err', '同步失敗'], off: ['', '已登入'] };
+  if (!s) { a.className = 'acct'; a.innerHTML = '<i></i>登入並同步'; return; }
+  const [c, t] = m[syncState.s] || m.off; a.className = 'acct ' + c; a.innerHTML = `<i></i>${esc(s.user)} · ${t}`;
+}
+const schedule = () => { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 3500); };
+onSave = () => { if (getSession()) schedule(); };
+async function syncOnce(s) {
+  const f = await getFile(`data/${s.user}.json`, s.token);
+  const remote = f ? JSON.parse(f.text) : {}, local = snapshot(), merged = merge(local, remote);
+  store.set('weak', merged.weak, true); store.set('prog', merged.prog, true); store.set('rm', merged.rm, true); store.set('hist', merged.hist, true);
+  if (!f || canon(merged) !== canon({ v: 1, weak: remote.weak || {}, prog: remote.prog || {}, rm: remote.rm || {}, hist: remote.hist || [] }))
+    await putFile(`data/${s.user}.json`, canon(merged), f && f.sha, s.token, 'sync progress');
+}
+async function sync() {
+  const s = getSession(); if (!s) return;
+  if (syncBusy) { syncAgain = true; return; }
+  syncBusy = true; clearTimeout(syncTimer); syncState = { s: 'busy' }; renderAcct();
+  try {
+    for (let i = 0; ; i++) { try { await syncOnce(s); break; } catch (e) { if (!e.conflict || i >= 2) throw e; } }
+    syncState = { s: 'ok', t: Date.now() };
+    if (!document.querySelector('.dock') && ['home', 'weak', 'history', 'me'].includes(cur)) VIEWS[cur]();
+  } catch (e) { syncState = { s: 'err', msg: e.message }; }
+  syncBusy = false; renderNav();
+  if (syncAgain) { syncAgain = false; schedule(); }
+}
+const cleanUser = u => String(u || '').trim().toLowerCase();
+async function register(user, pw, token) {
+  if (!/^[a-z0-9_-]{2,20}$/.test(user)) throw new Error('帳號只能用 2–20 個英數字、底線或減號');
+  if (pw.length < 6) throw new Error('密碼至少 6 個字');
+  if (!token) throw new Error('請貼上 GitHub token');
+  const r = await gh(`/repos/${GH.owner}/${GH.repo}`, token);
+  if (r.status === 401 || r.status === 403 || r.status === 404) throw new Error('這個 token 無效，或沒有 spelling-bee 這個 repo 的權限');
+  if (!r.ok) throw new Error('GitHub 回應 ' + r.status);
+  const j = await r.json(); if (j.permissions && j.permissions.push === false) throw new Error('這個 token 沒有寫入權限（需要 Contents: Read and write）');
+  if (await getFile(`vault/${user}.json`)) throw new Error('這個帳號已經有人用了，請直接登入或換一個名稱');
+  await putFile(`vault/${user}.json`, JSON.stringify(await seal(pw, token)), null, token, 'add account');
+  store.set('session', { user, token }); await sync();
+  if (syncState.s === 'err') throw new Error('帳號建好了，但第一次同步失敗：' + syncState.msg);
+}
+async function login(user, pw) {
+  const f = await getFile(`vault/${user}.json`);
+  if (!f) throw new Error('找不到這個帳號');
+  let token; try { token = await unseal(pw, JSON.parse(f.text)); } catch (e) { throw new Error('密碼錯誤'); }
+  store.set('session', { user, token }); await sync();
+  if (syncState.s === 'err') throw new Error('登入了，但同步失敗：' + syncState.msg);
+}
+let meTab = 'login';
+function viewMe() {
+  const s = getSession();
+  if (s) {
+    app.innerHTML = `<h2>帳號</h2>
+      <div class="card" style="margin-top:14px"><p>已登入：<b>${esc(s.user)}</b></p>
+        <p class="note" style="margin-top:6px">${syncState.s === 'ok' ? `上次同步 ${fmt(syncState.t)}。` : syncState.s === 'err' ? `同步失敗：${esc(syncState.msg || '')}` : '錯字、進度與記錄會自動同步到你的帳號。'}</p>
+        <div class="actions"><button class="btn" id="sy">立即同步</button><button class="btn ghost danger" id="lo">登出</button></div></div>
+      <p class="note" style="margin-top:16px">登出後資料仍留在這台裝置，只是不再同步。單字表本身不需要登入。</p>`;
+    $('#sy').onclick = async () => { await sync(); viewMe(); };
+    $('#lo').onclick = () => { store.set('session', null); syncState = { s: 'off' }; viewMe(); renderNav(); };
+    return;
+  }
+  app.innerHTML = `<h2>登入並同步</h2>
+    <p class="note" style="margin-top:4px">不登入也能完整使用，資料只存在這台裝置。登入後，錯字、進度和記錄會存在 GitHub，換手機或電腦也找得到。</p>
+    <div class="row" style="margin-top:14px">${seg('mt', { login: '登入', reg: '建立帳號' }, meTab)}</div>
+    <form class="card" id="f" style="margin-top:14px" autocomplete="off">
+      <input class="field" id="u" placeholder="帳號" autocapitalize="none" autocomplete="username" spellcheck="false">
+      <input class="field" id="p" type="password" placeholder="密碼" autocomplete="${meTab === 'reg' ? 'new-password' : 'current-password'}">
+      ${meTab === 'reg' ? `<input class="field" id="t" placeholder="GitHub token（github_pat_…）" autocapitalize="none" autocomplete="off" spellcheck="false">
+        <details class="opts"><summary>怎麼取得 token（只要做一次）</summary>
+          <ol class="steps"><li>登入 GitHub，開 <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b>。</li>
+            <li>按 <b>Generate new token</b>，名稱隨意，到期日選最久。</li>
+            <li><b>Repository access</b> 選 <b>Only select repositories</b>，只勾 <b>spelling-bee</b>。</li>
+            <li><b>Repository permissions</b> 裡把 <b>Contents</b> 設成 <b>Read and write</b>。</li>
+            <li>按 Generate，複製 token 貼到上面。</li></ol>
+          <p class="note" style="margin-top:8px">token 會用你的密碼加密後才存進 repo，之後在其他裝置只要帳號和密碼。忘記密碼就無法解開，只能重新建一個帳號。</p></details>` : ''}
+      <div class="actions" style="margin-top:14px"><button class="btn" id="go" type="submit">${meTab === 'reg' ? '建立帳號' : '登入'}</button></div>
+      <p class="err" id="e" hidden></p></form>`;
+  $$('input[name="mt"]').forEach(r => r.onchange = () => { meTab = picked('mt'); viewMe(); });
+  $('#f').onsubmit = async ev => {
+    ev.preventDefault();
+    const btn = $('#go'), er = $('#e'), user = cleanUser($('#u').value), pw = $('#p').value;
+    er.hidden = true; btn.disabled = true; btn.textContent = '處理中…';
+    try {
+      if (meTab === 'reg') await register(user, pw, ($('#t').value || '').trim()); else await login(user, pw);
+      viewMe(); renderNav();
+    } catch (e) { er.textContent = e.message || '失敗了'; er.hidden = false; btn.disabled = false; btn.textContent = meTab === 'reg' ? '建立帳號' : '登入'; renderNav(); }
+  };
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && getSession() && !syncBusy) sync(); });
 
 /* ---------- staff calibration: put the baseline on the third line ---------- */
 function calibrate() {
@@ -847,7 +1432,7 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
-const VERSION = '2026-11-24.1';
+const VERSION = '2026-11-25.1';
 $('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const hadController = !!navigator.serviceWorker.controller;
@@ -862,6 +1447,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
 calibrate();
 if (document.fonts) { document.fonts.load('400 30px Andika').then(calibrate).catch(() => {}); document.fonts.ready.then(calibrate); }
 route();
+if (getSession()) sync();
 </script>
 </body>
 </html>
