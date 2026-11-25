@@ -184,6 +184,17 @@ div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 .task .tt{font-weight:700}
 .task.done .tt::after{content:" ✓";color:var(--ok)}
 .task .go{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.sel{width:auto;min-width:11rem;max-width:100%;height:42px;padding:0 12px}
+.oldw>summary{display:flex;justify-content:space-between;align-items:baseline;gap:12px;cursor:pointer;list-style:none}
+.oldw>summary::-webkit-details-marker,.wrow>summary::-webkit-details-marker{display:none}
+.oldw>summary h2{font-size:17px}
+.oldw>summary h2::before{content:"▸ "}.oldw[open]>summary h2::before{content:"▾ "}
+.wrow{border-top:1px solid var(--rule);margin-top:8px}
+.wrow>summary{display:grid;grid-template-columns:5.5em 1fr auto;gap:12px;align-items:center;padding:11px 0;cursor:pointer;list-style:none}
+.wrow[open]>summary{padding-bottom:8px}
+.wrow .map{margin:0 0 10px}
+.mini{height:6px;background:var(--soft);border-radius:3px;overflow:hidden}
+.mini i{display:block;height:100%;background:var(--pen)}
 .homego{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
 
 /* word list */
@@ -321,7 +332,20 @@ function buildWords() {
   WMAP = Object.fromEntries(ALL.map(x => [x.w, x]));
 }
 buildWords();
-const deckName = id => (DECKS.find(d => d.id === id) || {}).short || '全部';
+const SCOPE_NAMES = { all: '全部', weekly: '所有每週', recent: '最近 4 週' };
+const deckName = id => SCOPE_NAMES[id] || (DECKS.find(d => d.id === id) || {}).short || '全部';
+const isWeekly = d => /^w\d/.test(d.id);
+const weeklyAll = () => DECKS.filter(d => isWeekly(d) && d.words.length);
+const recentIds = () => weeklyAll().slice(-4).map(d => d.id);
+const validDeck = v => ['all', 'weekly', 'recent'].includes(v) || !!ownedDecks().find(d => d.id === v);
+/* one dropdown scales to any number of weekly decks; scopes=true adds the combined choices */
+function deckSelect(id, val, scopes) {
+  const wk = weeklyAll(), other = ownedDecks().filter(d => !isWeekly(d));
+  const o = (v, l) => `<option value="${v}"${v === val ? ' selected' : ''}>${esc(l)}</option>`;
+  return `<select class="field sel" id="${id}" aria-label="範圍">${scopes ? o('all', '全部') + (wk.length > 1 ? o('recent', '最近 4 週') : '') + (wk.length ? o('weekly', '所有每週字表') : '') : ''}
+    ${other.map(d => o(d.id, d.short)).join('')}
+    ${wk.length ? `<optgroup label="每週字表（新到舊）">${wk.slice().reverse().map(d => o(d.id, d.short)).join('')}</optgroup>` : ''}</select>`;
+}
 const ownedDecks = () => DECKS.filter(d => d.words.length);
 
 /* ---------- progress ---------- */
@@ -338,7 +362,8 @@ function logHist(rec) { const h = getHist(); h.unshift(rec); store.set('hist', h
 const stateOf = (w, wk, pg) => wk[w] ? 'weak' : !pg[w] ? 'new' : pg[w].ok >= 2 ? 'known' : 'learning';
 function pool(deck, filter, exclude) {
   const wk = getWeak(), pg = getProg();
-  return ALL.filter(x => (deck === 'all' || x.deck === deck) && !(exclude && exclude.includes(x.deck)) &&
+  const inDeck = x => deck === 'all' || (deck === 'weekly' ? /^w\d/.test(x.deck) : deck === 'recent' ? recentIds().includes(x.deck) : x.deck === deck);
+  return ALL.filter(x => inDeck(x) && !(exclude && exclude.includes(x.deck)) &&
     (filter === 'all' || (filter === 'weak' ? !!wk[x.w] : !pg[x.w] && !wk[x.w])));
 }
 const storeNote = () => store.ok ? '' : '<p class="note" style="margin-top:20px">此環境無法長期儲存，錯字清單與記錄只在這次開啟期間保留。</p>';
@@ -517,6 +542,21 @@ function bindRoutine() {
 }
 
 /* ---------- home: where every word stands ---------- */
+const mapOf = (d, wk, pg) => `<div class="map">${d.words.map(x => `<button class="cell ${stateOf(x.w, wk, pg)}" data-w="${esc(x.w)}" aria-label="${esc(x.w)}"></button>`).join('')}</div>`;
+const knownIn = (d, wk, pg) => d.words.filter(x => stateOf(x.w, wk, pg) === 'known').length;
+/* full maps for the lists and the two newest weeks; every older week folds into one compact, expandable row */
+function deckBlocks(wk, pg) {
+  const W = weeklyAll(), pl = todayPlan(), cur = pl && pl.w ? Math.min(pl.w, W.length) - 1 : W.length - 1;
+  const open = new Set(W.filter((_, i) => i === cur || i === cur - 1).map(d => d.id));
+  const full = d => `<section class="deck"><div class="dh"><h2>${esc(d.name)}</h2><span class="note">${knownIn(d, wk, pg)} / ${d.words.length}</span></div>${mapOf(d, wk, pg)}</section>`;
+  const fixed = ownedDecks().filter(d => !isWeekly(d)), head = fixed.filter(d => d.id !== 'base'), base = fixed.filter(d => d.id === 'base');
+  const shown = W.filter(d => open.has(d.id)).reverse(), old = W.filter(d => !open.has(d.id)).reverse();
+  const row = d => { const k = knownIn(d, wk, pg), pc = Math.round(k / d.words.length * 100);
+    return `<details class="wrow"><summary><span>${esc(d.short)}</span><span class="mini"><i style="width:${pc}%"></i></span><span class="note">${k} / ${d.words.length}</span></summary>${mapOf(d, wk, pg)}</details>`; };
+  const oldAll = old.reduce((a, d) => a + knownIn(d, wk, pg), 0), oldTot = old.reduce((a, d) => a + d.words.length, 0);
+  return head.map(full).join('') + shown.map(full).join('') + base.map(full).join('') +
+    (old.length ? `<section class="deck"><details class="oldw"><summary><h2>更早的週（${old.length}）</h2><span class="note">${oldAll} / ${oldTot}</span></summary>${old.map(row).join('')}</details></section>` : '');
+}
 function viewHome() {
   const wk = getWeak(), pg = getProg(), cnt = { known: 0, learning: 0, weak: 0, new: 0 };
   ALL.forEach(x => cnt[stateOf(x.w, wk, pg)]++);
@@ -528,11 +568,7 @@ function viewHome() {
       <span><i class="sw weak"></i><b>${cnt.weak}</b> 錯字</span>
       <span><i class="sw new"></i><b>${cnt.new}</b> 未練</span></div>
     <p class="note">每個方格是一個字。點方格看單字；一個字不靠提示拼對兩次就算已熟。</p>
-    ${ownedDecks().map(d => {
-      const k = d.words.filter(x => stateOf(x.w, wk, pg) === 'known').length;
-      return `<section class="deck"><div class="dh"><h2>${esc(d.name)}</h2><span class="note">${k} / ${d.words.length}</span></div>
-        <div class="map">${d.words.map(x => `<button class="cell ${stateOf(x.w, wk, pg)}" data-w="${esc(x.w)}" aria-label="${esc(x.w)}"></button>`).join('')}</div></section>`;
-    }).join('')}
+    ${deckBlocks(wk, pg)}
     <div class="homego"><button class="btn" id="hq">開始測驗</button><button class="btn sec" id="hp">逐題練習</button>
       ${cnt.weak ? `<button class="btn sec" id="hw">練錯字（${cnt.weak}）</button>` : ''}</div>${storeNote()}`;
   bindRoutine();
@@ -567,7 +603,7 @@ function viewList() {
   const deck = DECKS.find(d => d.id === listDeck), words = deck.words, wk = getWeak();
   const letters = [...new Set(words.map(w => w.w[0].toLowerCase()))];
   app.innerHTML = `
-    ${decks.length > 1 ? `<div class="row" style="margin:0 0 14px">${seg('ld', Object.fromEntries(decks.map(d => [d.id, d.short])), listDeck)}</div>` : ''}
+    ${decks.length > 1 ? `<div class="row" style="margin:0 0 14px"><span class="lab">字表</span>${deckSelect('ld', listDeck, false)}</div>` : ''}
     ${words.length ? `
     <div class="tools"><input class="find" id="find" type="search" placeholder="搜尋單字或定義" ${ATTR}></div>
     <div class="letters" id="letters"><button class="lt on" data-l="">全部</button>${letters.map(l => `<button class="lt" data-l="${l}">${l.toUpperCase()}</button>`).join('')}
@@ -585,7 +621,7 @@ function viewList() {
           <div class="d">${esc(w.d)}</div>${w.s ? `<div class="s">${esc(w.s).replace(re, '<b>$1</b>')}</div>` : ''}</div>
         <button class="star${wk[w.w] ? ' on' : ''}" data-flag="${esc(w.w)}" aria-pressed="${!!wk[w.w]}" aria-label="標記為不會" title="標記為不會">${STAR}</button></div>`;
     }).join('')}</div>` : ''}`;
-  $$('input[name="ld"]').forEach(r => r.onchange = () => { listDeck = picked('ld'); prefs.ld = listDeck; savePrefs(); viewList(); });
+  if ($('#ld')) $('#ld').onchange = () => { listDeck = $('#ld').value; prefs.ld = listDeck; savePrefs(); viewList(); };
   if (!words.length) return;
   let L = '';
   const apply = () => {
@@ -621,12 +657,11 @@ function viewList() {
   };
 }
 /* ---------- play: pick a range, then quiz or practice ---------- */
-const deckOpts = () => ({ all: '全部', ...Object.fromEntries(ownedDecks().map(d => [d.id, d.short])) });
 function viewPlay() {
-  if (prefs.deck !== 'all' && !ownedDecks().find(d => d.id === prefs.deck)) prefs.deck = 'all';
+  if (!validDeck(prefs.deck)) prefs.deck = 'all';
   app.innerHTML = `
     <h2>練習</h2>
-    <div class="row"><span class="lab">範圍</span>${seg('deck', deckOpts(), prefs.deck)}</div>
+    <div class="row"><span class="lab">範圍</span>${deckSelect('deck', prefs.deck, true)}</div>
     <div class="row"><span class="lab">篩選</span>${seg('filter', { all: '全部', new: '沒練過', weak: '只錯字' }, prefs.filter)}<span class="note" id="pc"></span></div>
     <details class="opts"><summary>題目選項</summary>
       <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
@@ -636,13 +671,14 @@ function viewPlay() {
     </details>
     <div class="actions"><button class="btn" id="goq">開始測驗（25 題）</button><button class="btn sec" id="gop">逐題練習</button></div>
     <p class="note" style="margin-top:22px">測驗：不重複隨機抽題，每題 4 分，交卷後一起對答案。<br>逐題練習：答完馬上對答案，答錯的字隔幾題會再出現，拼對才算過。<br>拼錯的字會進錯字清單，之後連續兩次一次就拼對，會自動移出。</p>${storeNote()}`;
-  const save = () => { ['deck', 'filter', 'mode', 'sd', 'pt', 'size'].forEach(k => prefs[k] = picked(k)); savePrefs(); };
+  const save = () => { ['filter', 'mode', 'sd', 'pt', 'size'].forEach(k => prefs[k] = picked(k)); prefs.deck = $('#deck').value; savePrefs(); };
   const count = () => {
-    const n = pool(picked('deck'), picked('filter')).length;
+    const n = pool($('#deck').value, picked('filter')).length;
     $('#pc').textContent = `${n} 字`; $('#goq').disabled = $('#gop').disabled = !n;
     $('#goq').textContent = `開始測驗（${Math.min(N, n)} 題）`;
   };
   $$('input[type=radio]').forEach(r => r.onchange = () => { save(); count(); });
+  $('#deck').onchange = () => { save(); count(); };
   count();
   $('#goq').onclick = () => { save(); startQuiz(); };
   $('#gop').onclick = () => { save(); startPractice(); };
@@ -975,7 +1011,7 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
-const VERSION = '2026-11-25.4';
+const VERSION = '2026-11-25.5';
 $('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const hadController = !!navigator.serviceWorker.controller;

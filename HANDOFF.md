@@ -79,6 +79,8 @@ order they appear in `words/decks.json`. A week with no deck yet shows "new word
 `words/weekly-NN.txt` and a `decks.json` entry (id `wNN`) when asked ("出下一週").
 Day 1 learn the new batch (and first sweep last week's), day 2 retest the batch (most important: forgetting is steepest
 in the first 24 h), day 4 wrong-word quick test, day 5 mixed review of older decks from week 3 on, other days free.
+Many weekly decks are expected (a year is 50+): range pickers are dropdowns (all / last 4 weeks / all weekly / single deck),
+and the home map shows full maps only for the two newest weeks, folding older weeks into one expandable list.
 Only the start date is stored (`prefs.start`, device-local, not synced); "done" ticks are in localStorage key `rt`.
 
 ## Login and sync (optional, for the user's own devices)
