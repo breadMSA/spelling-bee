@@ -1,0 +1,5 @@
+[
+  {"id": "official", "name": "2027 比賽字表", "short": "2027 比賽", "file": "official-2027.txt"},
+  {"id": "base", "name": "世新 250 字（2026）", "short": "世新 250", "file": "base-2026.txt"},
+  {"id": "w01", "name": "加強・第 1 週", "short": "第 1 週", "file": "weekly-01.txt"}
+]

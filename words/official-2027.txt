@@ -1,0 +1,4 @@
+# 2027 世新 spelling bee 比賽字表 (EMPTY, waiting for next year's official list).
+# Fill this file and run `python3 build.py`. Full instructions: HANDOFF.md
+# Format, one word per line:  word|part of speech|definition|example sentence
+# Lines starting with # are ignored. Nothing below this line yet.
