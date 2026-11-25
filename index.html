@@ -184,7 +184,23 @@ div.staff{display:inline-block;width:auto;min-width:14rem;white-space:nowrap}
 .task .tt{font-weight:700}
 .task.done .tt::after{content:" ✓";color:var(--ok)}
 .task .go{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.sel{width:auto;min-width:11rem;max-width:100%;height:42px;padding:0 12px}
+.pick{display:inline-flex;align-items:center;justify-content:space-between;gap:14px;min-width:12rem;height:42px;padding:0 14px;border-radius:12px;border:1.5px solid var(--rule);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.pick:hover{border-color:var(--mute)}
+.pick svg{color:var(--mute)}
+.pk-back{position:fixed;inset:0;z-index:20;background:rgba(8,13,26,.55);display:flex;align-items:flex-end;justify-content:center}
+.pk{width:100%;max-width:520px;max-height:78vh;overflow:auto;background:var(--card);border-radius:22px 22px 0 0;padding:6px 18px calc(18px + env(safe-area-inset-bottom));outline:0;animation:pkup .18s ease-out}
+@keyframes pkup{from{transform:translateY(24px);opacity:.4}}
+.pk-grab{width:38px;height:4px;border-radius:2px;background:var(--rule);margin:6px auto 10px}
+.pk-row{display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 4px;border:0;border-top:1px solid var(--rule);background:none;color:var(--ink);font:inherit;font-size:16px;text-align:left;cursor:pointer}
+.pk-row:first-of-type{border-top:0}
+.pk-row.on{font-weight:700;color:var(--pen)}
+.pk-row.on::before{content:"✓";margin-right:10px}
+.pk-row.on span:first-child{margin-right:auto}
+.pk-h{margin:16px 0 8px;color:var(--mute);font-size:13px}
+.pk-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pk-chip{height:46px;border-radius:12px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.pk-chip.on{background:var(--pen);border-color:var(--pen);color:var(--onpen);font-weight:700}
+@media (min-width:760px){.pk-back{align-items:center}.pk{border-radius:22px;max-height:70vh}.pk-grab{display:none}}
 .oldw>summary{display:flex;justify-content:space-between;align-items:baseline;gap:12px;cursor:pointer;list-style:none}
 .oldw>summary::-webkit-details-marker,.wrow>summary::-webkit-details-marker{display:none}
 .oldw>summary h2{font-size:17px}
@@ -338,13 +354,33 @@ const isWeekly = d => /^w\d/.test(d.id);
 const weeklyAll = () => DECKS.filter(d => isWeekly(d) && d.words.length);
 const recentIds = () => weeklyAll().slice(-4).map(d => d.id);
 const validDeck = v => ['all', 'weekly', 'recent'].includes(v) || !!ownedDecks().find(d => d.id === v);
-/* one dropdown scales to any number of weekly decks; scopes=true adds the combined choices */
-function deckSelect(id, val, scopes) {
-  const wk = weeklyAll(), other = ownedDecks().filter(d => !isWeekly(d));
-  const o = (v, l) => `<option value="${v}"${v === val ? ' selected' : ''}>${esc(l)}</option>`;
-  return `<select class="field sel" id="${id}" aria-label="範圍">${scopes ? o('all', '全部') + (wk.length > 1 ? o('recent', '最近 4 週') : '') + (wk.length ? o('weekly', '所有每週字表') : '') : ''}
-    ${other.map(d => o(d.id, d.short)).join('')}
-    ${wk.length ? `<optgroup label="每週字表（新到舊）">${wk.slice().reverse().map(d => o(d.id, d.short)).join('')}</optgroup>` : ''}</select>`;
+/* a designed picker (not the browser's default menu): quick scopes as rows, weeks as a grid of chips, so 50+ weeks stay easy to pick */
+const CHEV = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+const deckPicker = (id, val) => `<button class="pick" id="${id}" type="button" data-v="${esc(val)}" aria-haspopup="dialog"><span>${esc(deckName(val))}</span>${CHEV}</button>`;
+function bindDeckPicker(id, scopes, onPick) {
+  const btn = document.getElementById(id); if (!btn) return;
+  btn.onclick = () => {
+    const cur = btn.dataset.v, wk = weeklyAll(), other = ownedDecks().filter(d => !isWeekly(d));
+    const total = ids => ALL.filter(x => ids.includes(x.deck)).length;
+    const rows = [];
+    if (scopes) { rows.push(['all', '全部', ALL.length]); if (wk.length > 1) rows.push(['recent', '最近 4 週', total(recentIds())]); if (wk.length) rows.push(['weekly', '所有每週字表', total(wk.map(d => d.id))]); }
+    other.forEach(d => rows.push([d.id, d.short, d.words.length]));
+    const back = document.createElement('div');
+    back.className = 'pk-back';
+    back.innerHTML = `<div class="pk" role="dialog" aria-modal="true" aria-label="選擇範圍" tabindex="-1"><div class="pk-grab"></div>
+      ${rows.map(([v, l, n]) => `<button class="pk-row${v === cur ? ' on' : ''}" data-v="${v}" type="button"><span>${esc(l)}</span><span class="note">${n} 字</span></button>`).join('')}
+      ${wk.length ? `<p class="pk-h">每週字表</p><div class="pk-grid">${wk.slice().reverse().map(d => `<button class="pk-chip${d.id === cur ? ' on' : ''}" data-v="${d.id}" type="button">${esc(d.short)}</button>`).join('')}</div>` : ''}</div>`;
+    const close = () => { back.remove(); document.removeEventListener('keydown', onKey); btn.focus(); };
+    const onKey = e => { if (e.key === 'Escape') close(); };
+    back.onclick = e => {
+      const c = e.target.closest('[data-v]');
+      if (c) { btn.dataset.v = c.dataset.v; btn.firstElementChild.textContent = deckName(c.dataset.v); close(); onPick(c.dataset.v); }
+      else if (e.target === back) close();
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(back);
+    const sel = back.querySelector('.on'); (sel || back.querySelector('.pk')).focus({ preventScroll: true }); if (sel) sel.scrollIntoView({ block: 'center' });
+  };
 }
 const ownedDecks = () => DECKS.filter(d => d.words.length);
 
@@ -603,7 +639,7 @@ function viewList() {
   const deck = DECKS.find(d => d.id === listDeck), words = deck.words, wk = getWeak();
   const letters = [...new Set(words.map(w => w.w[0].toLowerCase()))];
   app.innerHTML = `
-    ${decks.length > 1 ? `<div class="row" style="margin:0 0 14px"><span class="lab">字表</span>${deckSelect('ld', listDeck, false)}</div>` : ''}
+    ${decks.length > 1 ? `<div class="row" style="margin:0 0 14px"><span class="lab">字表</span>${deckPicker('ld', listDeck)}</div>` : ''}
     ${words.length ? `
     <div class="tools"><input class="find" id="find" type="search" placeholder="搜尋單字或定義" ${ATTR}></div>
     <div class="letters" id="letters"><button class="lt on" data-l="">全部</button>${letters.map(l => `<button class="lt" data-l="${l}">${l.toUpperCase()}</button>`).join('')}
@@ -621,7 +657,7 @@ function viewList() {
           <div class="d">${esc(w.d)}</div>${w.s ? `<div class="s">${esc(w.s).replace(re, '<b>$1</b>')}</div>` : ''}</div>
         <button class="star${wk[w.w] ? ' on' : ''}" data-flag="${esc(w.w)}" aria-pressed="${!!wk[w.w]}" aria-label="標記為不會" title="標記為不會">${STAR}</button></div>`;
     }).join('')}</div>` : ''}`;
-  if ($('#ld')) $('#ld').onchange = () => { listDeck = $('#ld').value; prefs.ld = listDeck; savePrefs(); viewList(); };
+  bindDeckPicker('ld', false, v => { listDeck = v; prefs.ld = v; savePrefs(); viewList(); });
   if (!words.length) return;
   let L = '';
   const apply = () => {
@@ -661,7 +697,7 @@ function viewPlay() {
   if (!validDeck(prefs.deck)) prefs.deck = 'all';
   app.innerHTML = `
     <h2>練習</h2>
-    <div class="row"><span class="lab">範圍</span>${deckSelect('deck', prefs.deck, true)}</div>
+    <div class="row"><span class="lab">範圍</span>${deckPicker('deck', prefs.deck)}</div>
     <div class="row"><span class="lab">篩選</span>${seg('filter', { all: '全部', new: '沒練過', weak: '只錯字' }, prefs.filter)}<span class="note" id="pc"></span></div>
     <details class="opts"><summary>題目選項</summary>
       <div class="row"><span class="lab">題型</span>${seg('mode', MODES, prefs.mode)}</div>
@@ -671,14 +707,14 @@ function viewPlay() {
     </details>
     <div class="actions"><button class="btn" id="goq">開始測驗（25 題）</button><button class="btn sec" id="gop">逐題練習</button></div>
     <p class="note" style="margin-top:22px">測驗：不重複隨機抽題，每題 4 分，交卷後一起對答案。<br>逐題練習：答完馬上對答案，答錯的字隔幾題會再出現，拼對才算過。<br>拼錯的字會進錯字清單，之後連續兩次一次就拼對，會自動移出。</p>${storeNote()}`;
-  const save = () => { ['filter', 'mode', 'sd', 'pt', 'size'].forEach(k => prefs[k] = picked(k)); prefs.deck = $('#deck').value; savePrefs(); };
+  const save = () => { ['filter', 'mode', 'sd', 'pt', 'size'].forEach(k => prefs[k] = picked(k)); prefs.deck = $('#deck').dataset.v; savePrefs(); };
   const count = () => {
-    const n = pool($('#deck').value, picked('filter')).length;
+    const n = pool($('#deck').dataset.v, picked('filter')).length;
     $('#pc').textContent = `${n} 字`; $('#goq').disabled = $('#gop').disabled = !n;
     $('#goq').textContent = `開始測驗（${Math.min(N, n)} 題）`;
   };
   $$('input[type=radio]').forEach(r => r.onchange = () => { save(); count(); });
-  $('#deck').onchange = () => { save(); count(); };
+  bindDeckPicker('deck', true, () => { save(); count(); });
   count();
   $('#goq').onclick = () => { save(); startQuiz(); };
   $('#gop').onclick = () => { save(); startPractice(); };
@@ -1011,7 +1047,7 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
-const VERSION = '2026-11-25.5';
+const VERSION = '2026-11-25.6';
 $('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const hadController = !!navigator.serviceWorker.controller;
