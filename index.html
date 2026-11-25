@@ -390,7 +390,7 @@ function isRight(q, val) {
 
 /* question body (before answering) and its marked version (after) */
 function qBody(q, i) {
-  const w = q.word, pos = w.p ? `<span class="pos">${esc(w.p)}</span>` : '';
+  const w = q.word, pos = (w.p ? `<span class="pos">${esc(w.p)}</span>` : '') + SAY(w.w);   // the word can always be played, as in the real contest
   if (q.type === 'def') return `<p class="prompt">${esc(maskDef(w))}${pos}</p>${patHint(w)}<input class="staff fld" data-i="${i}" aria-label="拼出單字" ${ATTR}>`;
   const [b, a] = splitSentence(w);
   return `<p class="prompt">${esc(b)}<input class="blank fld" data-i="${i}" aria-label="填入單字" ${ATTR}>${esc(a)}${pos}</p>${patHint(w)}
@@ -416,6 +416,7 @@ function bindFields(root, onChange) {
     if (onChange) el.addEventListener('input', onChange);
   });
   const toggleHint = i => { const h = $('#h' + i); if (h && prefs.sd !== 'on') h.hidden = !h.hidden; };
+  $$('[data-say]', root).forEach(b => { b.onmousedown = e => e.preventDefault(); });   // keep the keyboard open
   $$('[data-hint]', root).forEach(b => {
     b.onmousedown = e => e.preventDefault();          // keep focus (and the keyboard) in the answer field
     b.onclick = () => toggleHint(b.dataset.hint);
@@ -907,7 +908,7 @@ if (window.visualViewport) {
   };
   vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
 }
-const VERSION = '2026-11-25.2';
+const VERSION = '2026-11-25.3';
 $('#ver').textContent = VERSION;
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
   const hadController = !!navigator.serviceWorker.controller;

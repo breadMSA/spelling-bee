@@ -56,8 +56,9 @@ sw.js, manifest.webmanifest, icon-*.png, apple-touch-icon.png    PWA (install on
 ```
 
 Question types: `def` (definition with the word masked, spell it on a four-line staff input) and `cloze` (example
-sentence with a blank). No dictation, no fill-in-the-middle (the user ruled both out). Pronunciation button plays the
-word only (Web Speech API) and is never shown before answering.
+sentence with a blank). No dictation, no fill-in-the-middle (the user ruled both out). A speaker button plays the
+word only (Web Speech API) and is available on every question, before and after answering, because the real contest
+reads the word, the example sentence and the definition aloud and the user spells best by ear.
 
 Progress, keyed by the word string: `weak` (wrong-word list, removed after 2 first-try-correct in a row), `prog`
 (per-word ok/miss counts; "known" = 2+ correct and not weak), `hist` (last 200 sessions), `rm` (deletion tombstones for
